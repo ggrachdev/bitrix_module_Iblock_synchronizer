@@ -21,11 +21,11 @@ class ggrachdev_iblock_synchronizer extends CModule {
         
         if(\is_file($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/{$this->MODULE_ID}/install/version.php"))
         {
-            $arModuleVersion = include($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/{$this->MODULE_ID}/install/version.php");
+            include($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/{$this->MODULE_ID}/install/version.php");
         }
         else
         {
-            $arModuleVersion = include($_SERVER["DOCUMENT_ROOT"] . "/local/modules/{$this->MODULE_ID}/install/version.php");
+            include($_SERVER["DOCUMENT_ROOT"] . "/local/modules/{$this->MODULE_ID}/install/version.php");
         }
         
         $this->MODULE_NAME = GetMessage('GGRACHDEV_IBLOCK_SYNCHRONIZER_MODULNAME');

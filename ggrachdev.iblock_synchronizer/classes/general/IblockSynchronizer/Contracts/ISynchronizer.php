@@ -7,7 +7,7 @@ use GGrach\IblockSynchronizer\SyncResult;
 interface ISynchronizer {
     public function __construct(int $fromIblockId, int $toIblockId);
     
-    public function searchSimilarIds();
+    public function searchSimilarIds(array $params = []): array;
     
     public function sync(SyncResult $syncResult, array $arSyncRules): SyncResult;
 }

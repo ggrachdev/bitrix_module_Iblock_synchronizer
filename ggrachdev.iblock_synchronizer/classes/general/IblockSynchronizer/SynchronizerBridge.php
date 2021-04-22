@@ -3,16 +3,17 @@
 namespace GGrach\IblockSynchronizer;
 
 use GGrach\IblockSynchronizer\Parser\SyncRulesParser;
+use GGrach\IblockSynchronizer\Contracts\ISynchronizer;
 
 final class SynchronizerBridge {
 
-    private ISynchronizer $synchronizer;
+    private $synchronizer;
 
     /**
      * Правила синхронизации
      * @var array
      */
-    private array $arSyncRules = [];
+    private $arSyncRules = [];
 
     public function __construct(ISynchronizer $synchronizer) {
         $this->synchronizer = $synchronizer;

@@ -8,19 +8,19 @@ class SyncResult {
      * Массив идентификаторов синхронизированных элементов
      * @var array
      */
-    private array $arSynchronizedIds = [];
+    private $arSynchronizedIds = [];
 
     /**
      * Массив идентификаторов не синхронизированных элементов
      * @var array
      */
-    private array $arNotSynchronizedIds = [];
+    private $arNotSynchronizedIds = [];
 
     /**
      * Массив идентификаторов похожих элементов
      * @var array
      */
-    private array $arSimilarIds = [];
+    private $arSimilarIds = [];
 
     public function addSynchronizedId(int $id): array {
         $this->arSyncronizedIds[] = $id;

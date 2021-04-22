@@ -2,16 +2,16 @@
 
 namespace GGrach\IblockSynchronizer\Synchronizer;
 
-use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
 use \GGrach\IblockSynchronizer\SyncResult;
-use GGrach\IblockSynchronizer\Exceptions\SearchIblockException;
-use GGrach\IblockSynchronizer\Exceptions\BitrixRedactionException;
+use \GGrach\IblockSynchronizer\Exceptions\SearchIblockException;
+use \GGrach\IblockSynchronizer\Exceptions\BitrixRedactionException;
+use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
 use \Bitrix\Main\Loader;
 
 class Synchronizer implements ISynchronizer {
     
-    private int $fromIblockId;
-    private int $toIblockId;
+    private $fromIblockId;
+    private $toIblockId;
     
     public function __construct(int $fromIblockId, int $toIblockId) {
          if ($fromIblockId <= 0) {
@@ -43,12 +43,17 @@ class Synchronizer implements ISynchronizer {
         }
     }
 
-    public function searchSimilarIds() {
+    public function searchSimilarIds(array $params = []): array {
+        $arSimilarIds = [];
         
+        return $arSimilarIds;
     }
 
     public function sync(SyncResult $syncResult, array $arSyncRules): SyncResult {
         
+        $arIdsSimilar = $this->searchSimilarIds($arSyncRules);
+        
+        return $syncResult;
     }
 
 }
