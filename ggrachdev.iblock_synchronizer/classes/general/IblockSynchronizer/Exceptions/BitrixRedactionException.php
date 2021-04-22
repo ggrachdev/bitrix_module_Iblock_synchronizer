@@ -5,7 +5,7 @@ namespace GGrach\IblockSynchronizer\Exceptions;
 use \Exception;
 
 /**
- * Ошибки при несоответствии редации битрикса
+ * Ошибки при несоответствии редакции битрикса
  */
 class BitrixRedactionException extends Exception {
 
