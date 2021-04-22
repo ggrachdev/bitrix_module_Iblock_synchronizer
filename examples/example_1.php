@@ -1,20 +1,29 @@
 <?php
 
 if (\Bitrix\Main\Loader::includeModule('ggrachdev.iblock_synchronizer')) {
-    $synchronizer = new \GGrach\IblockSynchronizer\SynchronizerBride(23, 4);
-    $synchronizer->setSyncRules([
+    
+    // Синхронизируем данные элементов из инфоблока 23 в инфоблок 4, создав синхронизатор
+    $synchronizer = new \GGrach\IblockSynchronizer\Synchronizer\Synchronizer(23, 4);
+    
+    $synchronizerWrapper = new \GGrach\IblockSynchronizer\SynchronizerBridge($synchronizer);
+    
+    $synchronizerWrapper->setSyncRules([
         // Задаем похожие свойства по которым искать соответствия
         'SIMILAR_PROPERTIES' => [
             'XML_ID', 'PROPERTY_CML2_ARTICLE'
         ],
+        // Задаем свойства, которые нужно синхронизировать
         'SYNC_PROPERTIES' => [
             'PRICE'
         ]
     ]);
     
-    $syncStatistic = $synchronizer->sync();
+    // Получаем GGrach\IblockSynchronizer\SyncResult;
+    $syncResult = $synchronizerWrapper->sync();
     
     echo '<pre>';
-    print_r($syncStatistic);
+    print_r($syncResult->getSimilarIds());
+    print_r($syncResult->getSynchronizedIds());
+    print_r($syncResult->getNotSynchronizedIds());
     echo '</pre>';
 }

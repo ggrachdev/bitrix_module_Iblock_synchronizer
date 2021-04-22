@@ -34,11 +34,11 @@ class SyncResult {
         $this->arSimilarIds[] = $id;
     }
 
-    public function getSyncronizedIds(): array {
+    public function getSynchronizedIds(): array {
         return $this->arSynchronizedIds;
     }
 
-    public function getNotSyncronizedIds(): array {
+    public function getNotSynchronizedIds(): array {
         return $this->arNotSynchronizedIds;
     }
 

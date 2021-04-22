@@ -1,6 +1,6 @@
 <?
 \Bitrix\Main\Loader::registerAutoLoadClasses('ggrachdev.iblock_synchronizer', [
-    "\GGrach\IblockSynchronizer\SynchronizerBride" => "classes/general/IblockSynchronizer/SynchronizerBride.php",
+    "\GGrach\IblockSynchronizer\SynchronizerBridge" => "classes/general/IblockSynchronizer/SynchronizerBridge.php",
     
     // parser
     "\GGrach\IblockSynchronizer\Parser" => "classes/general/IblockSynchronizer/Parser/SyncRulesParser.php",
