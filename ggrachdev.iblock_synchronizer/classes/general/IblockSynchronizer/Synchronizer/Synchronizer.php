@@ -215,7 +215,7 @@ class Synchronizer implements ISynchronizer {
                         //2 
                         $arSelectTo = $this->getArraySelectTo($arSyncRules);
                         $arFilterTo = $this->getArrayFilterTo($arSyncRules);
-                        
+
                         foreach ($elementsFrom as $element) {
 
                             if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
@@ -244,16 +244,51 @@ class Synchronizer implements ISynchronizer {
                                 }
                             }
                         }
-                        
-                        dre($arSelectTo);
-                        dre($arFilterTo);
 
-                        $elementsSimilar = $entityIblockTo::getList([
+                        if (!empty($arSyncRules['CONFORMITY']) && !empty($arFilterTo)) {
+
+                            $arNewFilterTo = [];
+
+                            foreach ($arFilterTo as $keyFilterTo => $valueFilterTo) {
+                                $newKeyFilterTo = $keyFilterTo;
+                                foreach ($arSyncRules['CONFORMITY'] as $fromKey => $toKey) {
+                                    $newKeyFilterTo = \str_replace($fromKey, $toKey, $newKeyFilterTo);
+                                }
+
+                                $arNewFilterTo[$newKeyFilterTo] = $valueFilterTo;
+                            }
+
+                            $arFilterTo = $arNewFilterTo;
+                        }
+
+                        if (!empty($arSyncRules['CONFORMITY']) && !empty($arSelectTo)) {
+                            $arNewSelectTo = [];
+
+                            foreach ($arSelectTo as $keySelectTo => $valueSelectTo) {
+                                $newKeySelectTo = $keySelectTo;
+                                $newValueSelectTo = $valueSelectTo;
+                                foreach ($arSyncRules['CONFORMITY'] as $fromKey => $toKey) {
+                                    $newValueSelectTo = \str_replace($fromKey, $toKey, $newValueSelectTo);
+                                    $newKeySelectTo = \str_replace($fromKey, $toKey, $newKeySelectTo);
+                                }
+
+                                $arNewSelectTo[$newKeySelectTo] = $newValueSelectTo;
+                            }
+
+                            $arSelectTo = $arNewSelectTo;
+                        }
+
+                        $elementsTo = $entityIblockTo::getList([
                                 'select' => $arSelectTo,
                                 'filter' => $arFilterTo
                             ])->fetchAll();
+                        
+                        
+                        $arSimilar = [];
 
-                        dre($elementsSimilar, 'b+-a');
+                        if(!empty($elementsTo)) {
+                            
+                        }
                     }
                 }
             }
