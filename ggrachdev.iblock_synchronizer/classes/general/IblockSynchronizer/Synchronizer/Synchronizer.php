@@ -52,6 +52,69 @@ class Synchronizer implements ISynchronizer {
         return $this->toIblockId;
     }
 
+    public function getArraySelectTo(array $arSyncRules): array {
+        $arSelect = [];
+
+        // Добавляем системные свойства
+        if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
+            $arSelect = \array_merge($arSelect, $arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES']);
+        }
+
+        if (!empty($arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES'])) {
+            $arSelect = \array_merge($arSelect, $arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES']);
+        }
+
+        // Добавляем пользовательские свойства
+        if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
+            foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
+                $arSelect[$code . '_'] = $code;
+            }
+        }
+        if (!empty($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'])) {
+            foreach ($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'] as $code) {
+                $arSelect[$code . '_'] = $code;
+            }
+        }
+
+        if (!empty($arSelect)) {
+            $arSelect[] = 'ID';
+            $arSelect = \array_unique($arSelect);
+        }
+
+        return $arSelect;
+    }
+
+    public function getArrayFilterTo(array $arSyncRules): array {
+        $arFilter = [];
+
+        // Добавляем системные свойства
+        if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
+            foreach ($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
+                $arFilter['!=' . $code] = false;
+            }
+        }
+
+        if (!empty($arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES'])) {
+            foreach ($arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
+                $arFilter['!=' . $code] = false;
+            }
+        }
+
+        // Добавляем пользовательские свойства
+        if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
+            foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
+                $arFilter['!=' . $code . '.VALUE'] = false;
+            }
+        }
+        if (!empty($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'])) {
+            foreach ($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'] as $code) {
+                $arFilter['!=' . $code . '.VALUE'] = false;
+            }
+        }
+
+        return $arFilter;
+    }
+
     public function getArraySelectFrom(array $arSyncRules): array {
         $arSelect = [];
 
@@ -74,6 +137,11 @@ class Synchronizer implements ISynchronizer {
             foreach ($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'] as $code) {
                 $arSelect[$code . '_'] = $code;
             }
+        }
+
+        if (!empty($arSelect)) {
+            $arSelect[] = 'ID';
+            $arSelect = \array_unique($arSelect);
         }
 
         return $arSelect;
@@ -123,7 +191,7 @@ class Synchronizer implements ISynchronizer {
     public function sync(SyncResult $syncResult, array $arSyncRules): SyncResult {
 
         if (!empty($arSyncRules) && $arSyncRules['ERRORS'] === 0) {
-            dre($arSyncRules);
+            dre($arSyncRules, '+-a');
 
             $entityIblockFrom = Iblock::wakeUp($this->getFromIblockId())->getEntityDataClass();
             $entityIblockTo = Iblock::wakeUp($this->getToIblockId())->getEntityDataClass();
@@ -135,16 +203,58 @@ class Synchronizer implements ISynchronizer {
                 $arFilterFrom = $this->getArrayFilterFrom($arSyncRules);
 
                 if (!empty($arSelectFrom) && !empty($arFilterFrom)) {
-                    $arSelectFrom[] = 'ID';
 
-                    $arSelectFrom = \array_unique($arSelectFrom);
+                    dre($arFilterFrom);
 
                     $elementsFrom = $entityIblockFrom::getList([
                             'select' => $arSelectFrom,
                             'filter' => $arFilterFrom
                         ])->fetchAll();
 
-                    dre($elementsFrom, '+-a');
+                    if (!empty($elementsFrom)) {
+                        //2 
+                        $arSelectTo = $this->getArraySelectTo($arSyncRules);
+                        $arFilterTo = $this->getArrayFilterTo($arSyncRules);
+                        
+                        foreach ($elementsFrom as $element) {
+
+                            if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
+                                foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
+                                    if (!empty($element[$code . '_VALUE'])) {
+
+                                        if (!isset($arFilterTo['=' . $code . '.VALUE'])) {
+                                            $arFilterTo['=' . $code . '.VALUE'] = [];
+                                        }
+
+                                        $arFilterTo['=' . $code . '.VALUE'][] = $element[$code . '_VALUE'];
+                                    }
+                                }
+                            }
+
+                            if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
+                                foreach ($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
+                                    if (!empty($element[$code])) {
+
+                                        if (!isset($arFilterTo['=' . $code])) {
+                                            $arFilterTo['=' . $code] = [];
+                                        }
+
+                                        $arFilterTo['=' . $code][] = $element[$code];
+                                    }
+                                }
+                            }
+                        }
+                        
+                        dre($arSelectTo);
+                        dre($arFilterTo);
+
+                        $elementsSimilar = $entityIblockTo::getList([
+                                'select' => $arSelectTo,
+                                'filter' => $arFilterTo
+                            ])->fetchAll();
+
+                        dre($elementsSimilar, 'b+-a');
+                    }
                 }
             }
         }

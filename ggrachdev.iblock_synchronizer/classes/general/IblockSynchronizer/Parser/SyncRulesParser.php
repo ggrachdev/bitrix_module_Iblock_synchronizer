@@ -35,7 +35,8 @@ class SyncRulesParser {
             'NOT_VALID_PROPERTIES' => [
                 'SYNC_PROPERTIES' => [],
                 'SIMILAR_PROPERTIES' => []
-            ]
+            ],
+            'CONFORMITY' => []
         ];
 
         if (\array_key_exists('SIMILAR_PROPERTIES', $arInputRules) && !empty($arInputRules['SYNC_PROPERTIES'])) {
@@ -53,15 +54,16 @@ class SyncRulesParser {
                 } else {
                     $arValidRules['ERRORS']++;
                     $arValidRules['NOT_VALID_PROPERTIES']['SIMILAR_PROPERTIES'][] = $codeProperty;
-                        $arValidRules['ERRORS_TEXT'][] = 'Not valid SIMILAR_PROPERTIES with code = ' . $codeProperty;
+                    $arValidRules['ERRORS_TEXT'][] = 'Not valid SIMILAR_PROPERTIES with code = ' . $codeProperty;
                 }
             }
 
             if (\array_key_exists('SYNC_PROPERTIES', $arInputRules) && !empty($arInputRules['SYNC_PROPERTIES'])) {
 
-                $codeProperty = trim($codeProperty);
-
                 foreach ($arInputRules['SYNC_PROPERTIES'] as $codeProperty) {
+
+                    $codeProperty = trim($codeProperty);
+
                     if (self::isUserProperty($codeProperty)) {
                         $arValidRules['SYNC_PROPERTIES']['USER_PROPERTIES'][] = \preg_replace('/^PROPERTY_/', '', $codeProperty);
                     } else if (self::isSystemProperty($codeProperty)) {
@@ -72,6 +74,19 @@ class SyncRulesParser {
                         $arValidRules['ERRORS']++;
                         $arValidRules['NOT_VALID_PROPERTIES']['SYNC_PROPERTIES'][] = $codeProperty;
                         $arValidRules['ERRORS_TEXT'][] = 'Not valid SYNC_PROPERTIES with code = ' . $codeProperty;
+                    }
+                }
+
+
+                if (\array_key_exists('CONFORMITY', $arInputRules) && !empty($arInputRules['CONFORMITY'])) {
+
+                    foreach ($arInputRules['CONFORMITY'] as $codeFrom => $codeTo) {
+                       if(self::isUserProperty($codeFrom) && self::isUserProperty($codeTo))
+                       {
+                           $arValidRules['CONFORMITY'] = [
+                               \preg_replace('/^PROPERTY_/', '', $codeFrom) => \preg_replace('/^PROPERTY_/', '', $codeTo)
+                           ];
+                       }
                     }
                 }
             }
