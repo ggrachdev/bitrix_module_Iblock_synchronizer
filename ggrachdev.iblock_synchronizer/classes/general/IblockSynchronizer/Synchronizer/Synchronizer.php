@@ -199,6 +199,10 @@ class Synchronizer implements ISynchronizer {
             $systemSimilarProperties = !empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES']) ? $arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] : null;
             $userSimilarProperties = !empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES']) ? $arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] : null;
 
+            $systemSyncProperties = !empty($arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES']) ? $arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES'] : null;
+            $userSyncProperties = !empty($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES']) ? $arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'] : null;
+            $otherSyncProperties = !empty($arSyncRules['SYNC_PROPERTIES']['OTHER_PROPERTIES']) ? $arSyncRules['SYNC_PROPERTIES']['OTHER_PROPERTIES'] : null;
+
             foreach ($elementsTo as $elementTo) {
                 foreach ($elementsFrom as $elementFrom) {
                     $isSimilar = true;
@@ -227,16 +231,51 @@ class Synchronizer implements ISynchronizer {
                                 !empty($elementFrom[$codeUserPropertyFrom . '_VALUE']) &&
                                 !empty($elementTo[$codeUserPropertyTo . '_VALUE'])
                             ) {
-                                
+                                if ($elementFrom[$codeUserPropertyFrom . '_VALUE'] != $elementTo[$codeUserPropertyTo . '_VALUE']) {
+                                    $isSimilar = false;
+                                    break;
+                                }
                             } else {
                                 $isSimilar = false;
                                 break;
                             }
                         }
                     }
+
+                    if ($isSimilar) {
+                        if (!isset($arSimilar[$elementTo['ID']])) {
+                            $arSimilar[$elementTo['ID']] = [];
+                        }
+
+                        $arUpdate = [];
+
+                        if ($systemSyncProperties) {
+                            foreach ($systemSyncProperties as $codeSystemProperty) {
+                                $arUpdate[$codeSystemProperty] = $elementFrom[$codeSystemProperty];
+                            }
+                        }
+
+                        if ($userSyncProperties) {
+                            foreach ($userSyncProperties as $codeUserPropertyFrom) {
+                                $codeUserPropertyTo = $this->getCodeTo($codeUserPropertyFrom, $arSyncRules);
+
+                                $arUpdate[$codeUserPropertyTo] = $elementFrom[$codeUserPropertyFrom . '_VALUE'];
+                            }
+                        }
+
+                        if ($otherSyncProperties) {
+                            if (\in_array('PRICE', $otherSyncProperties)) {
+                                $arUpdate['PRICES'] = [];
+                            }
+                        }
+
+                        $arSimilar[$elementTo['ID']][$elementFrom['ID']] = $arUpdate;
+                    }
                 }
             }
         }
+
+        dre($arSimilar);
 
         return $arSimilar;
     }
