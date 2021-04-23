@@ -189,7 +189,7 @@ class Synchronizer implements ISynchronizer {
      * @param array $arSyncRules
      * @return array
      */
-    protected function getSimilarArrayElements(array $elementsFrom, array $elementsTo, array $arSyncRules): array {
+    protected function getSimilarArrayElements(array $elementsFrom, array $elementsTo, array $arSyncRules, SyncResult $syncResult): array {
 
         $arSimilar = [];
 
@@ -271,6 +271,7 @@ class Synchronizer implements ISynchronizer {
                         }
 
                         $arIdsSimilarFrom[] = $elementFrom['ID'];
+                        $syncResult->addSimilarId($elementFrom['ID']);
                         $arSimilar[$elementTo['ID']][$elementFrom['ID']] = $arUpdate;
                     }
                 }
@@ -415,10 +416,14 @@ class Synchronizer implements ISynchronizer {
                                 'filter' => $arFilterTo
                             ])->fetchAll();
 
-                        $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo, $arSyncRules);
+                        $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo, $arSyncRules, $syncResult);
+
+                        $syncResult->setSynchronizedData($arSimilar);
 
                         if (!empty($arSimilar)) {
                             foreach ($arSimilar as $idTo => $arDataFrom) {
+
+                                $isSuccessSync = true;
 
                                 if (!empty($arDataFrom)) {
                                     $arKeys = \array_keys($arDataFrom);
@@ -433,6 +438,7 @@ class Synchronizer implements ISynchronizer {
 
                                     // Синхронизируем цены
                                     if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
+
                                         foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
                                             $arFieldsPrice = [
                                                 "PRODUCT_ID" => $idTo,
@@ -450,11 +456,25 @@ class Synchronizer implements ISynchronizer {
 
                                             if ($arPriceItem = $dbPrice->fetch()) {
                                                 $result = \Bitrix\Catalog\Model\Price::update($arPriceItem["ID"], $arFieldsPrice);
+
+                                                if (!$result->isSuccess()) {
+                                                    $isSuccessSync = false;
+                                                }
                                             } else {
                                                 $result = \Bitrix\Catalog\Model\Price::add($arFieldsPrice);
+
+                                                if (!$result->isSuccess()) {
+                                                    $isSuccessSync = false;
+                                                }
                                             }
                                         }
                                     }
+
+                                    // @todo Синхронизировать системные и пользовательские свойства
+                                }
+
+                                if ($isSuccessSync) {
+                                    $syncResult->addSynchronizedId($idTo);
                                 }
                             }
                         }

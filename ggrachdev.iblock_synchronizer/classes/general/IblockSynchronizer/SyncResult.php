@@ -17,20 +17,34 @@ class SyncResult {
     private $arNotSynchronizedIds = [];
 
     /**
+     * Данные синхронизации
+     * @var array
+     */
+    private $arSynchronizedData = [];
+
+    /**
      * Массив идентификаторов похожих элементов
      * @var array
      */
     private $arSimilarIds = [];
 
-    public function addSynchronizedId(int $id): array {
-        $this->arSyncronizedIds[] = $id;
+    public function addSynchronizedId(int $id) {
+        $this->arSynchronizedIds[] = $id;
     }
 
-    public function addNotSynchronizedId(int $id): array {
+    public function setSynchronizedData(array $data) {
+        $this->arSynchronizedData = $data;
+    }
+
+    public function getSynchronizedData(): array {
+        return $this->arSynchronizedData;
+    }
+
+    public function addNotSynchronizedId(int $id) {
         $this->arNotSynchronizedIds[] = $id;
     }
 
-    public function addSimilarId(int $id): array {
+    public function addSimilarId(int $id) {
         $this->arSimilarIds[] = $id;
     }
 
@@ -46,11 +60,11 @@ class SyncResult {
         return $this->arSimilarIds;
     }
 
-    public function isSuccess(): array {
+    public function isSuccess(): bool {
         return !empty($this->getSynchronizedIds()) && sizeof($this->getSynchronizedIds()) === sizeof($this->getSimilarIds());
     }
 
-    public function isFail(): array {
+    public function isFail(): bool {
         return !$this->isSuccess();
     }
 
