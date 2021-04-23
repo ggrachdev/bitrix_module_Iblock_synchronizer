@@ -24,7 +24,7 @@ class Synchronizer implements ISynchronizer {
             throw new SearchIblockException('Iblock id ' . $toIblockId . ' can be above zero ');
         }
 
-        if (Loader::includeModule('iblock')) {
+        if (Loader::includeModule('iblock') && Loader::includeModule('sale')) {
 
             $dbFromRes = \CIBlock::GetList([], ['ID' => $fromIblockId]);
 
@@ -203,6 +203,8 @@ class Synchronizer implements ISynchronizer {
             $userSyncProperties = !empty($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES']) ? $arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'] : null;
             $otherSyncProperties = !empty($arSyncRules['SYNC_PROPERTIES']['OTHER_PROPERTIES']) ? $arSyncRules['SYNC_PROPERTIES']['OTHER_PROPERTIES'] : null;
 
+            $arIdsSimilarFrom = [];
+
             foreach ($elementsTo as $elementTo) {
                 foreach ($elementsFrom as $elementFrom) {
                     $isSimilar = true;
@@ -269,13 +271,48 @@ class Synchronizer implements ISynchronizer {
                             }
                         }
 
+                        $arIdsSimilarFrom[] = $elementFrom['ID'];
                         $arSimilar[$elementTo['ID']][$elementFrom['ID']] = $arUpdate;
                     }
                 }
             }
-        }
 
-        dre($arSimilar);
+
+            $arIdsSimilarFrom = \array_unique($arIdsSimilarFrom);
+
+            if (\in_array('PRICE', $otherSyncProperties) && !empty($arIdsSimilarFrom)) {
+                $prices = \Bitrix\Catalog\PriceTable::getList(
+                        [
+                            'filter' => [
+                                '=PRODUCT_ID' => $arIdsSimilarFrom
+                            ]
+                        ]
+                    )->fetchAll();
+                
+                $arAdaptedPrices = [];
+                
+                if(!empty($prices)) {
+                    foreach ($prices as $arPrice) {
+                        if(!isset($arAdaptedPrices[$arPrice['PRODUCT_ID']]))
+                        {
+                            $arAdaptedPrices[$arPrice['PRODUCT_ID']] = [];
+                        }
+                        
+                        $arAdaptedPrices[$arPrice['PRODUCT_ID']][$arPrice['CATALOG_GROUP_ID']] = $arPrice;
+                    }
+                    
+                    foreach($arSimilar as $idTo => &$arDataTo)
+                    {
+                        foreach($arDataTo as $idFrom => &$arDataFrom)
+                        {
+                            $arDataFrom['PRICES'] = \array_key_exists($idFrom, $arAdaptedPrices) ? $arAdaptedPrices[$idFrom] : [];
+                        }
+                    }
+                    
+                    dre($arSimilar, 'a+-');
+                }
+            }
+        }
 
         return $arSimilar;
     }
