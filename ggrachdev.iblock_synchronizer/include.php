@@ -16,6 +16,7 @@
     "\GGrach\IblockSynchronizer\Synchronizer\Synchronizer" => "classes/general/IblockSynchronizer/Synchronizer/Synchronizer.php",
     
     // other
-    "\GGrach\IblockSynchronizer\SyncResult" => "classes/general/IblockSynchronizer/SyncResult.php"
+    "\GGrach\IblockSynchronizer\SyncResult" => "classes/general/IblockSynchronizer/SyncResult.php",
+    "\GGrach\IblockSynchronizer\Cache\RuntimeCache" => "classes/general/IblockSynchronizer/Cache/RuntimeCache.php"
 ]);
 ?>

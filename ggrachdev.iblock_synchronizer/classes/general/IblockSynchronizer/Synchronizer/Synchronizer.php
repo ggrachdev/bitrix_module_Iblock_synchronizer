@@ -8,6 +8,7 @@ use \GGrach\IblockSynchronizer\Exceptions\BitrixRedactionException;
 use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
 use \Bitrix\Main\Loader;
 use \Bitrix\Iblock\Iblock;
+use \GGrach\IblockSynchronizer\Cache\RuntimeCache;
 
 class Synchronizer implements ISynchronizer {
 
@@ -52,7 +53,7 @@ class Synchronizer implements ISynchronizer {
         return $this->toIblockId;
     }
 
-    public function getArraySelectTo(array $arSyncRules): array {
+    protected function getArraySelectTo(array $arSyncRules): array {
         $arSelect = [];
 
         // Добавляем системные свойства
@@ -84,7 +85,7 @@ class Synchronizer implements ISynchronizer {
         return $arSelect;
     }
 
-    public function getArrayFilterTo(array $arSyncRules): array {
+    protected function getArrayFilterTo(array $arSyncRules): array {
         $arFilter = [];
 
         // Добавляем системные свойства
@@ -115,7 +116,7 @@ class Synchronizer implements ISynchronizer {
         return $arFilter;
     }
 
-    public function getArraySelectFrom(array $arSyncRules): array {
+    protected function getArraySelectFrom(array $arSyncRules): array {
         $arSelect = [];
 
         // Добавляем системные свойства
@@ -147,7 +148,7 @@ class Synchronizer implements ISynchronizer {
         return $arSelect;
     }
 
-    public function getArrayFilterFrom(array $arSyncRules): array {
+    protected function getArrayFilterFrom(array $arSyncRules): array {
         $arFilter = [];
 
         // Добавляем системные свойства
@@ -179,6 +180,78 @@ class Synchronizer implements ISynchronizer {
     }
 
     /**
+     * На выходе получаем
+     * key string - id массива to
+     * value array - какие значения надо вставить (массив, потому что может быть найдено несколько соответствий)
+     * 
+     * @param array $elementsFrom
+     * @param array $elementsTo
+     * @param array $arSyncRules
+     * @return array
+     */
+    protected function getSimilarArrayElements(array $elementsFrom, array $elementsTo, array $arSyncRules): array {
+
+        $arSimilar = [];
+
+        if (!empty($elementsFrom) && !empty($elementsTo) && !empty($arSyncRules)) {
+            dre($arSyncRules['SIMILAR_PROPERTIES']);
+
+            $systemSimilarProperties = !empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES']) ? $arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] : null;
+            $userSimilarProperties = !empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES']) ? $arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] : null;
+
+            foreach ($elementsTo as $elementTo) {
+                foreach ($elementsFrom as $elementFrom) {
+                    $isSimilar = true;
+
+                    // Проверяем системные свойства
+                    if ($systemSimilarProperties) {
+                        foreach ($systemSimilarProperties as $codeSystemProperty) {
+                            if (!empty($elementTo[$codeSystemProperty]) && !empty($elementFrom[$codeSystemProperty])) {
+                                if ($elementTo[$codeSystemProperty] != $elementFrom[$codeSystemProperty]) {
+                                    $isSimilar = false;
+                                    break;
+                                }
+                            } else {
+                                $isSimilar = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Проверяем пользовательские свойства
+                    if ($userSimilarProperties && $isSimilar) {
+                        foreach ($userSimilarProperties as $codeUserPropertyFrom) {
+                            $codeUserPropertyTo = $this->getCodeTo($codeUserPropertyFrom, $arSyncRules);
+
+                            if (
+                                !empty($elementFrom[$codeUserPropertyFrom . '_VALUE']) &&
+                                !empty($elementTo[$codeUserPropertyTo . '_VALUE'])
+                            ) {
+                                
+                            } else {
+                                $isSimilar = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $arSimilar;
+    }
+
+    protected function getCodeTo(string $codeFrom, array $arSyncRules): string {
+        if (!empty($arSyncRules['CONFORMITY'])) {
+            $codePropertyTo = str_replace(array_keys($arSyncRules['CONFORMITY']), \array_values($arSyncRules['CONFORMITY']), $codeFrom);
+        } else {
+            $codePropertyTo = $codeFrom;
+        }
+
+        return $codePropertyTo;
+    }
+
+    /**
      * 1) Получаем все элементы инфоблока from
      * 2) Ищем соответствия в инфоблоке to
      * 3) Достаем данные для синхронизации из инфоблока from
@@ -191,7 +264,6 @@ class Synchronizer implements ISynchronizer {
     public function sync(SyncResult $syncResult, array $arSyncRules): SyncResult {
 
         if (!empty($arSyncRules) && $arSyncRules['ERRORS'] === 0) {
-            dre($arSyncRules, '+-a');
 
             $entityIblockFrom = Iblock::wakeUp($this->getFromIblockId())->getEntityDataClass();
             $entityIblockTo = Iblock::wakeUp($this->getToIblockId())->getEntityDataClass();
@@ -204,14 +276,13 @@ class Synchronizer implements ISynchronizer {
 
                 if (!empty($arSelectFrom) && !empty($arFilterFrom)) {
 
-                    dre($arFilterFrom);
-
                     $elementsFrom = $entityIblockFrom::getList([
                             'select' => $arSelectFrom,
                             'filter' => $arFilterFrom
                         ])->fetchAll();
 
                     if (!empty($elementsFrom)) {
+
                         //2 
                         $arSelectTo = $this->getArraySelectTo($arSyncRules);
                         $arFilterTo = $this->getArrayFilterTo($arSyncRules);
@@ -250,10 +321,7 @@ class Synchronizer implements ISynchronizer {
                             $arNewFilterTo = [];
 
                             foreach ($arFilterTo as $keyFilterTo => $valueFilterTo) {
-                                $newKeyFilterTo = $keyFilterTo;
-                                foreach ($arSyncRules['CONFORMITY'] as $fromKey => $toKey) {
-                                    $newKeyFilterTo = \str_replace($fromKey, $toKey, $newKeyFilterTo);
-                                }
+                                $newKeyFilterTo = $this->getCodeTo($keyFilterTo, $arSyncRules);
 
                                 $arNewFilterTo[$newKeyFilterTo] = $valueFilterTo;
                             }
@@ -265,12 +333,8 @@ class Synchronizer implements ISynchronizer {
                             $arNewSelectTo = [];
 
                             foreach ($arSelectTo as $keySelectTo => $valueSelectTo) {
-                                $newKeySelectTo = $keySelectTo;
-                                $newValueSelectTo = $valueSelectTo;
-                                foreach ($arSyncRules['CONFORMITY'] as $fromKey => $toKey) {
-                                    $newValueSelectTo = \str_replace($fromKey, $toKey, $newValueSelectTo);
-                                    $newKeySelectTo = \str_replace($fromKey, $toKey, $newKeySelectTo);
-                                }
+                                $newValueSelectTo = $this->getCodeTo($valueSelectTo, $arSyncRules);
+                                $newKeySelectTo = $this->getCodeTo($keySelectTo, $arSyncRules);
 
                                 $arNewSelectTo[$newKeySelectTo] = $newValueSelectTo;
                             }
@@ -282,13 +346,8 @@ class Synchronizer implements ISynchronizer {
                                 'select' => $arSelectTo,
                                 'filter' => $arFilterTo
                             ])->fetchAll();
-                        
-                        
-                        $arSimilar = [];
 
-                        if(!empty($elementsTo)) {
-                            
-                        }
+                        $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo, $arSyncRules);
                     }
                 }
             }
