@@ -46,4 +46,12 @@ class SyncResult {
         return $this->arSimilarIds;
     }
 
+    public function isSuccess(): array {
+        return !empty($this->getSynchronizedIds()) && sizeof($this->getSynchronizedIds()) === sizeof($this->getSimilarIds());
+    }
+
+    public function isFail(): array {
+        return !$this->isSuccess();
+    }
+
 }
