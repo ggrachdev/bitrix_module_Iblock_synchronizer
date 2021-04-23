@@ -194,7 +194,6 @@ class Synchronizer implements ISynchronizer {
         $arSimilar = [];
 
         if (!empty($elementsFrom) && !empty($elementsTo) && !empty($arSyncRules)) {
-            dre($arSyncRules['SIMILAR_PROPERTIES']);
 
             $systemSimilarProperties = !empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES']) ? $arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] : null;
             $userSimilarProperties = !empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES']) ? $arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] : null;
@@ -288,28 +287,23 @@ class Synchronizer implements ISynchronizer {
                             ]
                         ]
                     )->fetchAll();
-                
+
                 $arAdaptedPrices = [];
-                
-                if(!empty($prices)) {
+
+                if (!empty($prices)) {
                     foreach ($prices as $arPrice) {
-                        if(!isset($arAdaptedPrices[$arPrice['PRODUCT_ID']]))
-                        {
+                        if (!isset($arAdaptedPrices[$arPrice['PRODUCT_ID']])) {
                             $arAdaptedPrices[$arPrice['PRODUCT_ID']] = [];
                         }
-                        
+
                         $arAdaptedPrices[$arPrice['PRODUCT_ID']][$arPrice['CATALOG_GROUP_ID']] = $arPrice;
                     }
-                    
-                    foreach($arSimilar as $idTo => &$arDataTo)
-                    {
-                        foreach($arDataTo as $idFrom => &$arDataFrom)
-                        {
+
+                    foreach ($arSimilar as $idTo => &$arDataTo) {
+                        foreach ($arDataTo as $idFrom => &$arDataFrom) {
                             $arDataFrom['PRICES'] = \array_key_exists($idFrom, $arAdaptedPrices) ? $arAdaptedPrices[$idFrom] : [];
                         }
                     }
-                    
-                    dre($arSimilar, 'a+-');
                 }
             }
         }
@@ -368,7 +362,6 @@ class Synchronizer implements ISynchronizer {
                             if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
                                 foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
                                     if (!empty($element[$code . '_VALUE'])) {
-
                                         if (!isset($arFilterTo['=' . $code . '.VALUE'])) {
                                             $arFilterTo['=' . $code . '.VALUE'] = [];
                                         }
@@ -381,7 +374,6 @@ class Synchronizer implements ISynchronizer {
                             if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
                                 foreach ($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
                                     if (!empty($element[$code])) {
-
                                         if (!isset($arFilterTo['=' . $code])) {
                                             $arFilterTo['=' . $code] = [];
                                         }
@@ -424,6 +416,48 @@ class Synchronizer implements ISynchronizer {
                             ])->fetchAll();
 
                         $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo, $arSyncRules);
+
+                        if (!empty($arSimilar)) {
+                            foreach ($arSimilar as $idTo => $arDataFrom) {
+
+                                if (!empty($arDataFrom)) {
+                                    $arKeys = \array_keys($arDataFrom);
+
+                                    $idFrom = $arKeys[0];
+
+                                    if (!empty($_GET['log'])) {
+                                        echo '<pre>';
+                                        print_r('Синхронизируем в элемент ' . '<a target="_blank" href="/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->getToIblockId() . '&type=1c_catalog&lang=ru&ID=' . $idTo . '&find_section_section=0&WF=Y">' . $idTo . '</a>' . ' данные из ' . '<a target="_blank" href="/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->getFromIblockId() . '&type=1c_catalog&lang=ru&ID=' . $idFrom . '&find_section_section=0&WF=Y">' . $idFrom . '</a>');
+                                        echo '<pre>';
+                                    }
+
+                                    // Синхронизируем цены
+                                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
+                                        foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
+                                            $arFieldsPrice = [
+                                                "PRODUCT_ID" => $idTo,
+                                                "CATALOG_GROUP_ID" => $priceCode,
+                                                "PRICE" => $priceData['PRICE'],
+                                                "CURRENCY" => $priceData['CURRENCY'] ? $priceData['CURRENCY'] : 'RUB',
+                                            ];
+
+                                            $dbPrice = \Bitrix\Catalog\Model\Price::getList([
+                                                    "filter" => [
+                                                        "PRODUCT_ID" => $idTo,
+                                                        "CATALOG_GROUP_ID" => $priceCode
+                                                    ]
+                                            ]);
+
+                                            if ($arPriceItem = $dbPrice->fetch()) {
+                                                $result = \Bitrix\Catalog\Model\Price::update($arPriceItem["ID"], $arFieldsPrice);
+                                            } else {
+                                                $result = \Bitrix\Catalog\Model\Price::add($arFieldsPrice);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
