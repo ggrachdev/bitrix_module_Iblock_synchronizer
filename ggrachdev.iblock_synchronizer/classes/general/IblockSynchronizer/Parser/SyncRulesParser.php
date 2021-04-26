@@ -39,6 +39,7 @@ class SyncRulesParser {
             'CONFORMITY' => []
         ];
 
+        // Без похожих свойств нет смысла начинать проверку
         if (\array_key_exists('SIMILAR_PROPERTIES', $arInputRules) && !empty($arInputRules['SYNC_PROPERTIES'])) {
 
             foreach ($arInputRules['SIMILAR_PROPERTIES'] as $codeProperty) {
@@ -76,17 +77,16 @@ class SyncRulesParser {
                         $arValidRules['ERRORS_TEXT'][] = 'Not valid SYNC_PROPERTIES with code = ' . $codeProperty;
                     }
                 }
+            }
 
+            // Свойства соответствия
+            if (\array_key_exists('CONFORMITY', $arInputRules) && !empty($arInputRules['CONFORMITY'])) {
 
-                if (\array_key_exists('CONFORMITY', $arInputRules) && !empty($arInputRules['CONFORMITY'])) {
-
-                    foreach ($arInputRules['CONFORMITY'] as $codeFrom => $codeTo) {
-                       if(self::isUserProperty($codeFrom) && self::isUserProperty($codeTo))
-                       {
-                           $arValidRules['CONFORMITY'] = [
-                               \preg_replace('/^PROPERTY_/', '', $codeFrom) => \preg_replace('/^PROPERTY_/', '', $codeTo)
-                           ];
-                       }
+                foreach ($arInputRules['CONFORMITY'] as $codeFrom => $codeTo) {
+                    if (self::isUserProperty($codeFrom) && self::isUserProperty($codeTo)) {
+                        $arValidRules['CONFORMITY'] = [
+                            \preg_replace('/^PROPERTY_/', '', $codeFrom) => \preg_replace('/^PROPERTY_/', '', $codeTo)
+                        ];
                     }
                 }
             }

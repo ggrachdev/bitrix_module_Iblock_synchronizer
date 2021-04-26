@@ -180,6 +180,8 @@ class Synchronizer implements ISynchronizer {
     }
 
     /**
+     * Найти похожие элементы и свойства для синхронизации
+     * 
      * На выходе получаем
      * key string - id массива to
      * value array - какие значения надо вставить (массив, потому что может быть найдено несколько соответствий)
@@ -312,6 +314,13 @@ class Synchronizer implements ISynchronizer {
         return $arSimilar;
     }
 
+    /**
+     * Получить соответствие кода свойства из инфоблока from в инфоблок to
+     * 
+     * @param string $codeFrom
+     * @param array $arSyncRules
+     * @return string
+     */
     protected function getCodeTo(string $codeFrom, array $arSyncRules): string {
         if (!empty($arSyncRules['CONFORMITY'])) {
             $codePropertyTo = str_replace(array_keys($arSyncRules['CONFORMITY']), \array_values($arSyncRules['CONFORMITY']), $codeFrom);
@@ -415,7 +424,8 @@ class Synchronizer implements ISynchronizer {
                                 'select' => $arSelectTo,
                                 'filter' => $arFilterTo
                             ])->fetchAll();
-
+                        
+                        // 2) 3)
                         $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo, $arSyncRules, $syncResult);
 
                         $syncResult->setSynchronizedData($arSimilar);
@@ -431,11 +441,13 @@ class Synchronizer implements ISynchronizer {
                                     $idFrom = $arKeys[0];
 
                                     if (!empty($_GET['log'])) {
+                                        // @todo Вынести в отдельный метод
                                         echo '<pre>';
                                         print_r('Синхронизируем в элемент ' . '<a target="_blank" href="/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->getToIblockId() . '&type=1c_catalog&lang=ru&ID=' . $idTo . '&find_section_section=0&WF=Y">' . $idTo . '</a>' . ' данные из ' . '<a target="_blank" href="/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->getFromIblockId() . '&type=1c_catalog&lang=ru&ID=' . $idFrom . '&find_section_section=0&WF=Y">' . $idFrom . '</a>');
                                         echo '<pre>';
                                     }
 
+                                    // 4)
                                     // Синхронизируем цены
                                     if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
 

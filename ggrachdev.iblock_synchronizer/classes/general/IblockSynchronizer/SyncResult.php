@@ -61,7 +61,9 @@ class SyncResult {
     }
 
     public function isSuccess(): bool {
-        return !empty($this->getSynchronizedIds()) && sizeof($this->getSynchronizedIds()) === sizeof($this->getSimilarIds());
+        return !empty($this->getSynchronizedIds()) && 
+        !empty($this->getSimilarIds()) && 
+        sizeof($this->getSynchronizedIds()) === sizeof($this->getSimilarIds());
     }
 
     public function isFail(): bool {
