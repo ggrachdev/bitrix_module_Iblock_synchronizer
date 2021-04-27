@@ -356,10 +356,14 @@ class Synchronizer implements ISynchronizer {
     }
 
     /**
+     * Запуск синхронизатора
+     * 
      * 1) Получаем все элементы инфоблока from
      * 2) Ищем соответствия в инфоблоке to
      * 3) Достаем данные для синхронизации из инфоблока from
      * 4) Синхронизируем из from в to
+     * 
+     * @todo Стремиться сделать шаблонный метод
      * 
      * @param SyncResult $syncResult
      * @param array $arSyncRules
@@ -429,7 +433,6 @@ class Synchronizer implements ISynchronizer {
 
                             foreach ($arFilterTo as $keyFilterTo => $valueFilterTo) {
                                 $newKeyFilterTo = $this->getCodeTo($keyFilterTo, $arSyncRules);
-
                                 $arNewFilterTo[$newKeyFilterTo] = $valueFilterTo;
                             }
 
@@ -441,9 +444,7 @@ class Synchronizer implements ISynchronizer {
 
                             foreach ($arSelectTo as $keySelectTo => $valueSelectTo) {
                                 $newValueSelectTo = $this->getCodeTo($valueSelectTo, $arSyncRules);
-                                $newKeySelectTo = $this->getCodeTo($keySelectTo, $arSyncRules);
-
-                                $arNewSelectTo[$newKeySelectTo] = $newValueSelectTo;
+                                $arNewSelectTo[$newKeySelectTo] = $this->getCodeTo($keySelectTo, $arSyncRules);
                             }
 
                             $arSelectTo = $arNewSelectTo;
@@ -469,9 +470,12 @@ class Synchronizer implements ISynchronizer {
         return $syncResult;
     }
 
+    /**
+     * Синхронизация свойств
+     */
     public function sync() {
         $syncResult = $this->getSyncResult();
-        
+
         $arSimilar = $this->getSyncResult()->getSynchronizedData();
         if (!empty($arSimilar)) {
             foreach ($arSimilar as $idTo => $arDataFrom) {
@@ -521,12 +525,17 @@ class Synchronizer implements ISynchronizer {
                     foreach ($arDataFrom as $idFrom => $values) {
 
                         foreach ($values as $codePropertyUpdate => $valueProperty) {
-
                             if ($codePropertyUpdate !== 'PRICES') {
-                                if (SyncRulesParser::isUserProperty($codePropertyUpdate)) {
-                                    dre($codePropertyUpdate);
-                                } else if (SyncRulesParser::isSystemProperty($codePropertyUpdate)) {
-                                    dre($codePropertyUpdate);
+                                if (\is_string($valueProperty)) {
+                                    if (SyncRulesParser::isUserProperty($codePropertyUpdate)) {
+//                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+//                                            $codePropertyUpdate => $valueProperty
+//                                        ]);
+                                    } else if (SyncRulesParser::isSystemProperty($codePropertyUpdate)) {
+//                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+//                                            $codePropertyUpdate => $valueProperty
+//                                        ]);
+                                    }
                                 }
                             }
                         }
