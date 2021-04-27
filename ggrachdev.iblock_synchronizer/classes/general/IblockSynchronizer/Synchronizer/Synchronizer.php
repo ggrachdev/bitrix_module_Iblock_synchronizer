@@ -444,7 +444,7 @@ class Synchronizer implements ISynchronizer {
 
                             foreach ($arSelectTo as $keySelectTo => $valueSelectTo) {
                                 $newValueSelectTo = $this->getCodeTo($valueSelectTo, $arSyncRules);
-                                $arNewSelectTo[$newKeySelectTo] = $this->getCodeTo($keySelectTo, $arSyncRules);
+                                $arNewSelectTo[$this->getCodeTo($keySelectTo, $arSyncRules)] = $newValueSelectTo;
                             }
 
                             $arSelectTo = $arNewSelectTo;
@@ -532,6 +532,7 @@ class Synchronizer implements ISynchronizer {
 //                                            $codePropertyUpdate => $valueProperty
 //                                        ]);
                                     } else if (SyncRulesParser::isSystemProperty($codePropertyUpdate)) {
+                                        dre($codePropertyUpdate);
 //                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
 //                                            $codePropertyUpdate => $valueProperty
 //                                        ]);
