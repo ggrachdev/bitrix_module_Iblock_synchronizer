@@ -6,14 +6,16 @@ use \GGrach\IblockSynchronizer\SyncResult;
 use \GGrach\IblockSynchronizer\Exceptions\SearchIblockException;
 use \GGrach\IblockSynchronizer\Exceptions\BitrixRedactionException;
 use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
+use \GGrach\IblockSynchronizer\Parser\SyncRulesParser;
 use \Bitrix\Main\Loader;
 use \Bitrix\Iblock\Iblock;
-use \GGrach\IblockSynchronizer\Cache\RuntimeCache;
 
 class Synchronizer implements ISynchronizer {
 
     private $fromIblockId;
     private $toIblockId;
+    private $arSyncRules;
+    private $syncResult;
 
     public function __construct(int $fromIblockId, int $toIblockId) {
         if ($fromIblockId <= 0) {
@@ -45,6 +47,14 @@ class Synchronizer implements ISynchronizer {
         }
     }
 
+    public function setSyncRules(array $arSyncRules): void {
+        $this->arSyncRules = $arSyncRules;
+    }
+
+    public function getSyncRules(): array {
+        return $this->arSyncRules;
+    }
+
     public function getFromIblockId(): int {
         return $this->fromIblockId;
     }
@@ -53,8 +63,9 @@ class Synchronizer implements ISynchronizer {
         return $this->toIblockId;
     }
 
-    protected function getArraySelectTo(array $arSyncRules): array {
+    protected function getArraySelectTo(): array {
         $arSelect = [];
+        $arSyncRules = $this->getSyncRules();
 
         // Добавляем системные свойства
         if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
@@ -85,8 +96,9 @@ class Synchronizer implements ISynchronizer {
         return $arSelect;
     }
 
-    protected function getArrayFilterTo(array $arSyncRules): array {
+    protected function getArrayFilterTo(): array {
         $arFilter = [];
+        $arSyncRules = $this->getSyncRules();
 
         // Добавляем системные свойства
         if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
@@ -105,8 +117,9 @@ class Synchronizer implements ISynchronizer {
         return $arFilter;
     }
 
-    protected function getArraySelectFrom(array $arSyncRules): array {
+    protected function getArraySelectFrom(): array {
         $arSelect = [];
+        $arSyncRules = $this->getSyncRules();
 
         // Добавляем системные свойства
         if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
@@ -137,8 +150,9 @@ class Synchronizer implements ISynchronizer {
         return $arSelect;
     }
 
-    protected function getArrayFilterFrom(array $arSyncRules): array {
+    protected function getArrayFilterFrom(): array {
         $arFilter = [];
+        $arSyncRules = $this->getSyncRules();
 
         // Добавляем системные свойства
         if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
@@ -180,9 +194,11 @@ class Synchronizer implements ISynchronizer {
      * @param array $arSyncRules
      * @return array
      */
-    protected function getSimilarArrayElements(array $elementsFrom, array $elementsTo, array $arSyncRules, SyncResult $syncResult): array {
+    protected function getSimilarArrayElements(array $elementsFrom, array $elementsTo): array {
 
         $arSimilar = [];
+        $syncResult = $this->getSyncResult();
+        $arSyncRules = $this->getSyncRules();
 
         if (!empty($elementsFrom) && !empty($elementsTo) && !empty($arSyncRules)) {
 
@@ -251,7 +267,6 @@ class Synchronizer implements ISynchronizer {
                          */
                         $arUpdate = [];
 
-                        
                         /**
                          * Добавляем системные свойства в массив обновления
                          */
@@ -260,7 +275,7 @@ class Synchronizer implements ISynchronizer {
                                 $arUpdate[$codeSystemProperty] = $elementFrom[$codeSystemProperty];
                             }
                         }
-                        
+
                         /**
                          * Добавляем пользовательские свойства в массив обновления
                          */
@@ -271,7 +286,7 @@ class Synchronizer implements ISynchronizer {
                                 $arUpdate[$codeUserPropertyTo] = $elementFrom[$codeUserPropertyFrom . '_VALUE'];
                             }
                         }
-                        
+
                         /**
                          * Добавляем прочие свойства в массив обновления
                          */
@@ -350,11 +365,13 @@ class Synchronizer implements ISynchronizer {
      * @param array $arSyncRules
      * @return SyncResult
      */
-    public function sync(SyncResult $syncResult, array $arSyncRules): SyncResult {
+    public function run(): SyncResult {
 
+        $arSyncRules = $this->getSyncRules();
+        $syncResult = $this->getSyncResult();
         $syncResult->setFromIblockId($this->getFromIblockId());
         $syncResult->setToIblockId($this->getToIblockId());
-        
+
         if (!empty($arSyncRules) && $arSyncRules['ERRORS'] === 0) {
 
             $entityIblockFrom = Iblock::wakeUp($this->getFromIblockId())->getEntityDataClass();
@@ -363,8 +380,8 @@ class Synchronizer implements ISynchronizer {
             if ($entityIblockFrom && $entityIblockTo) {
 
                 // 1)
-                $arSelectFrom = $this->getArraySelectFrom($arSyncRules);
-                $arFilterFrom = $this->getArrayFilterFrom($arSyncRules);
+                $arSelectFrom = $this->getArraySelectFrom();
+                $arFilterFrom = $this->getArrayFilterFrom();
 
                 if (!empty($arSelectFrom) && !empty($arFilterFrom)) {
 
@@ -376,8 +393,8 @@ class Synchronizer implements ISynchronizer {
                     if (!empty($elementsFrom)) {
 
                         //2 
-                        $arSelectTo = $this->getArraySelectTo($arSyncRules);
-                        $arFilterTo = $this->getArrayFilterTo($arSyncRules);
+                        $arSelectTo = $this->getArraySelectTo();
+                        $arFilterTo = $this->getArrayFilterTo();
 
                         foreach ($elementsFrom as $element) {
 
@@ -431,76 +448,104 @@ class Synchronizer implements ISynchronizer {
 
                             $arSelectTo = $arNewSelectTo;
                         }
-                        
+
                         $elementsTo = $entityIblockTo::getList([
                                 'select' => $arSelectTo,
                                 'filter' => $arFilterTo
                             ])->fetchAll();
 
                         // 2) 3)
-                        $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo, $arSyncRules, $syncResult);
+                        $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo);
 
                         $syncResult->setSynchronizedData($arSimilar);
 
-                        if (!empty($arSimilar)) {
-                            foreach ($arSimilar as $idTo => $arDataFrom) {
-
-                                $isSuccessSync = true;
-
-                                if (!empty($arDataFrom)) {
-                                    $arKeys = \array_keys($arDataFrom);
-
-                                    $idFrom = $arKeys[0];
-
-                                    // 4)
-                                    // Синхронизируем цены
-                                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
-
-                                        foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
-                                            $arFieldsPrice = [
-                                                "PRODUCT_ID" => $idTo,
-                                                "CATALOG_GROUP_ID" => $priceCode,
-                                                "PRICE" => $priceData['PRICE'],
-                                                "CURRENCY" => $priceData['CURRENCY'] ? $priceData['CURRENCY'] : 'RUB',
-                                            ];
-
-                                            $dbPrice = \Bitrix\Catalog\Model\Price::getList([
-                                                    "filter" => [
-                                                        "PRODUCT_ID" => $idTo,
-                                                        "CATALOG_GROUP_ID" => $priceCode
-                                                    ]
-                                            ]);
-
-                                            if ($arPriceItem = $dbPrice->fetch()) {
-                                                $result = \Bitrix\Catalog\Model\Price::update($arPriceItem["ID"], $arFieldsPrice);
-
-                                                if (!$result->isSuccess()) {
-                                                    $isSuccessSync = false;
-                                                }
-                                            } else {
-                                                $result = \Bitrix\Catalog\Model\Price::add($arFieldsPrice);
-
-                                                if (!$result->isSuccess()) {
-                                                    $isSuccessSync = false;
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // @todo Синхронизировать системные и пользовательские свойства
-                                }
-
-                                if ($isSuccessSync) {
-                                    $syncResult->addSynchronizedId($idTo);
-                                }
-                            }
-                        }
+                        // 4)
+                        $this->sync();
                     }
                 }
             }
         }
 
         return $syncResult;
+    }
+
+    public function sync() {
+        $syncResult = $this->getSyncResult();
+        
+        $arSimilar = $this->getSyncResult()->getSynchronizedData();
+        if (!empty($arSimilar)) {
+            foreach ($arSimilar as $idTo => $arDataFrom) {
+
+                $isSuccessSync = true;
+
+                if (!empty($arDataFrom)) {
+                    $arKeys = \array_keys($arDataFrom);
+
+                    $idFrom = $arKeys[0];
+
+                    // Синхронизируем цены
+                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom]) && false) {
+
+                        foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
+                            $arFieldsPrice = [
+                                "PRODUCT_ID" => $idTo,
+                                "CATALOG_GROUP_ID" => $priceCode,
+                                "PRICE" => $priceData['PRICE'],
+                                "CURRENCY" => $priceData['CURRENCY'] ? $priceData['CURRENCY'] : 'RUB',
+                            ];
+
+                            $dbPrice = \Bitrix\Catalog\Model\Price::getList([
+                                    "filter" => [
+                                        "PRODUCT_ID" => $idTo,
+                                        "CATALOG_GROUP_ID" => $priceCode
+                                    ]
+                            ]);
+
+                            if ($arPriceItem = $dbPrice->fetch()) {
+                                $result = \Bitrix\Catalog\Model\Price::update($arPriceItem["ID"], $arFieldsPrice);
+
+                                if (!$result->isSuccess()) {
+                                    $isSuccessSync = false;
+                                }
+                            } else {
+                                $result = \Bitrix\Catalog\Model\Price::add($arFieldsPrice);
+
+                                if (!$result->isSuccess()) {
+                                    $isSuccessSync = false;
+                                }
+                            }
+                        }
+                    }
+
+                    // @todo Синхронизировать системные и пользовательские свойства
+                    foreach ($arDataFrom as $idFrom => $values) {
+
+                        foreach ($values as $codePropertyUpdate => $valueProperty) {
+
+                            if ($codePropertyUpdate !== 'PRICES') {
+                                if (SyncRulesParser::isUserProperty($codePropertyUpdate)) {
+                                    dre($codePropertyUpdate);
+                                } else if (SyncRulesParser::isSystemProperty($codePropertyUpdate)) {
+                                    dre($codePropertyUpdate);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ($isSuccessSync) {
+                    $syncResult->addSynchronizedId($idTo);
+                }
+            }
+        }
+    }
+
+    public function getSyncResult(): SyncResult {
+        return $this->syncResult;
+    }
+
+    public function setSyncResult(SyncResult $syncResult): void {
+        $this->syncResult = $syncResult;
     }
 
 }

@@ -33,7 +33,9 @@ final class SynchronizerBridge {
 
     public function sync(): SyncResult {
         $resultSync = new SyncResult();
-        return $this->getSynchronizer()->sync($resultSync, $this->getArSyncRules());
+        $this->getSynchronizer()->setSyncRules($this->getArSyncRules());
+        $this->getSynchronizer()->setSyncResult($resultSync);
+        return $this->getSynchronizer()->run();
     }
 
 }

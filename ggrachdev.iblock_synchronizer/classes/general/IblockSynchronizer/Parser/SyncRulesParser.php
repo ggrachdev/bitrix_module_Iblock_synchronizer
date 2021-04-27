@@ -98,7 +98,7 @@ class SyncRulesParser {
         return $arValidRules;
     }
 
-    protected static function isUserProperty(string $codeProperty): bool {
+    public static function isUserProperty(string $codeProperty): bool {
 
         $isSystemProperty = self::isSystemProperty($codeProperty);
         $isUserProperty = false;
@@ -110,7 +110,7 @@ class SyncRulesParser {
         return $isUserProperty;
     }
 
-    protected static function isOtherProperty(string $codeProperty): bool {
+    public static function isOtherProperty(string $codeProperty): bool {
 
         $isOtherProperty = false;
 
@@ -121,7 +121,7 @@ class SyncRulesParser {
         return $isOtherProperty;
     }
 
-    protected static function isSystemProperty(string $codeProperty): bool {
+    public static function isSystemProperty(string $codeProperty): bool {
 
         $isSystemProperty = false;
 
