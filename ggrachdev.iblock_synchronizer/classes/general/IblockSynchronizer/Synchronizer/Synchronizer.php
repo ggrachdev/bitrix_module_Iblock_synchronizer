@@ -95,20 +95,9 @@ class Synchronizer implements ISynchronizer {
             }
         }
 
-        if (!empty($arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES'])) {
-            foreach ($arSyncRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
-                $arFilter['!=' . $code] = false;
-            }
-        }
-
         // Добавляем пользовательские свойства
         if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
             foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
-                $arFilter['!=' . $code . '.VALUE'] = false;
-            }
-        }
-        if (!empty($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'])) {
-            foreach ($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'] as $code) {
                 $arFilter['!=' . $code . '.VALUE'] = false;
             }
         }
@@ -194,9 +183,6 @@ class Synchronizer implements ISynchronizer {
     protected function getSimilarArrayElements(array $elementsFrom, array $elementsTo, array $arSyncRules, SyncResult $syncResult): array {
 
         $arSimilar = [];
-        
-        $syncResult->setFromIblockId($this->getFromIblockId());
-        $syncResult->setToIblockId($this->getToIblockId());
 
         if (!empty($elementsFrom) && !empty($elementsTo) && !empty($arSyncRules)) {
 
@@ -366,6 +352,9 @@ class Synchronizer implements ISynchronizer {
      */
     public function sync(SyncResult $syncResult, array $arSyncRules): SyncResult {
 
+        $syncResult->setFromIblockId($this->getFromIblockId());
+        $syncResult->setToIblockId($this->getToIblockId());
+        
         if (!empty($arSyncRules) && $arSyncRules['ERRORS'] === 0) {
 
             $entityIblockFrom = Iblock::wakeUp($this->getFromIblockId())->getEntityDataClass();
@@ -442,7 +431,7 @@ class Synchronizer implements ISynchronizer {
 
                             $arSelectTo = $arNewSelectTo;
                         }
-
+                        
                         $elementsTo = $entityIblockTo::getList([
                                 'select' => $arSelectTo,
                                 'filter' => $arFilterTo
