@@ -4,9 +4,10 @@
 
 **В данный момент модуль может синхронизировать только цены, в будущем доработаю**
 
-Если любой передать get параметр log, то получите дебаг-данные через print_r()
 Модуль тестировался только при сравнивании текстовых и численных одиночных свойств
+
 Протестировано на php 7.2.34
+
 ```php
 <?
 
@@ -44,6 +45,9 @@ if (\Bitrix\Main\Loader::includeModule('ggrachdev.iblock_synchronizer')) {
    print_r($syncResult->getNotSynchronizedIds());
    print_r($syncResult->getSynchronizedData());
    var_dump($syncResult->isSuccess());
+
+   // Выведет кликабельные ссылки откуда и куда происходила синхронизация
+   $syncResult->debug();
    echo '</pre>';
 }
 ?>

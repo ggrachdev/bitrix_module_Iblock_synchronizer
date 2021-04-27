@@ -194,6 +194,9 @@ class Synchronizer implements ISynchronizer {
     protected function getSimilarArrayElements(array $elementsFrom, array $elementsTo, array $arSyncRules, SyncResult $syncResult): array {
 
         $arSimilar = [];
+        
+        $syncResult->setFromIblockId($this->getFromIblockId());
+        $syncResult->setToIblockId($this->getToIblockId());
 
         if (!empty($elementsFrom) && !empty($elementsTo) && !empty($arSyncRules)) {
 
@@ -204,13 +207,19 @@ class Synchronizer implements ISynchronizer {
             $userSyncProperties = !empty($arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES']) ? $arSyncRules['SYNC_PROPERTIES']['USER_PROPERTIES'] : null;
             $otherSyncProperties = !empty($arSyncRules['SYNC_PROPERTIES']['OTHER_PROPERTIES']) ? $arSyncRules['SYNC_PROPERTIES']['OTHER_PROPERTIES'] : null;
 
+            /**
+             * @var array<int> id'ы элементов инфоблока from 
+             */
             $arIdsSimilarFrom = [];
 
+            /**
+             * Заполняем массив $arSimilar, ищем похожие элементы
+             */
             foreach ($elementsTo as $elementTo) {
                 foreach ($elementsFrom as $elementFrom) {
                     $isSimilar = true;
 
-                    // Проверяем системные свойства
+                    // Проверяем системные свойства на схожесть
                     if ($systemSimilarProperties) {
                         foreach ($systemSimilarProperties as $codeSystemProperty) {
                             if (!empty($elementTo[$codeSystemProperty]) && !empty($elementFrom[$codeSystemProperty])) {
@@ -225,7 +234,7 @@ class Synchronizer implements ISynchronizer {
                         }
                     }
 
-                    // Проверяем пользовательские свойства
+                    // Проверяем пользовательские свойства на схожесть
                     if ($userSimilarProperties && $isSimilar) {
                         foreach ($userSimilarProperties as $codeUserPropertyFrom) {
                             $codeUserPropertyTo = $this->getCodeTo($codeUserPropertyFrom, $arSyncRules);
@@ -245,19 +254,30 @@ class Synchronizer implements ISynchronizer {
                         }
                     }
 
+                    // Если элементы являются похожими, то добавляем элемент в массив похожих к element to
                     if ($isSimilar) {
                         if (!isset($arSimilar[$elementTo['ID']])) {
                             $arSimilar[$elementTo['ID']] = [];
                         }
 
+                        /**
+                         * @var array Массив с данными для обновления element to
+                         */
                         $arUpdate = [];
 
+                        
+                        /**
+                         * Добавляем системные свойства в массив обновления
+                         */
                         if ($systemSyncProperties) {
                             foreach ($systemSyncProperties as $codeSystemProperty) {
                                 $arUpdate[$codeSystemProperty] = $elementFrom[$codeSystemProperty];
                             }
                         }
-
+                        
+                        /**
+                         * Добавляем пользовательские свойства в массив обновления
+                         */
                         if ($userSyncProperties) {
                             foreach ($userSyncProperties as $codeUserPropertyFrom) {
                                 $codeUserPropertyTo = $this->getCodeTo($codeUserPropertyFrom, $arSyncRules);
@@ -265,7 +285,10 @@ class Synchronizer implements ISynchronizer {
                                 $arUpdate[$codeUserPropertyTo] = $elementFrom[$codeUserPropertyFrom . '_VALUE'];
                             }
                         }
-
+                        
+                        /**
+                         * Добавляем прочие свойства в массив обновления
+                         */
                         if ($otherSyncProperties) {
                             if (\in_array('PRICE', $otherSyncProperties)) {
                                 $arUpdate['PRICES'] = [];
@@ -279,14 +302,14 @@ class Synchronizer implements ISynchronizer {
                 }
             }
 
-
-            $arIdsSimilarFrom = \array_unique($arIdsSimilarFrom);
-
+            /**
+             * Подгружаем цены на которые надо обновить цены элементов to
+             */
             if (\in_array('PRICE', $otherSyncProperties) && !empty($arIdsSimilarFrom)) {
                 $prices = \Bitrix\Catalog\PriceTable::getList(
                         [
                             'filter' => [
-                                '=PRODUCT_ID' => $arIdsSimilarFrom
+                                '=PRODUCT_ID' => \array_unique($arIdsSimilarFrom)
                             ]
                         ]
                     )->fetchAll();
@@ -424,7 +447,7 @@ class Synchronizer implements ISynchronizer {
                                 'select' => $arSelectTo,
                                 'filter' => $arFilterTo
                             ])->fetchAll();
-                        
+
                         // 2) 3)
                         $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo, $arSyncRules, $syncResult);
 
@@ -439,13 +462,6 @@ class Synchronizer implements ISynchronizer {
                                     $arKeys = \array_keys($arDataFrom);
 
                                     $idFrom = $arKeys[0];
-
-                                    if (!empty($_GET['log'])) {
-                                        // @todo Вынести в отдельный метод
-                                        echo '<pre>';
-                                        print_r('Синхронизируем в элемент ' . '<a target="_blank" href="/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->getToIblockId() . '&type=1c_catalog&lang=ru&ID=' . $idTo . '&find_section_section=0&WF=Y">' . $idTo . '</a>' . ' данные из ' . '<a target="_blank" href="/bitrix/admin/iblock_element_edit.php?IBLOCK_ID=' . $this->getFromIblockId() . '&type=1c_catalog&lang=ru&ID=' . $idFrom . '&find_section_section=0&WF=Y">' . $idFrom . '</a>');
-                                        echo '<pre>';
-                                    }
 
                                     // 4)
                                     // Синхронизируем цены
