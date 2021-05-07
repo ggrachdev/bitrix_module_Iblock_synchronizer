@@ -19,8 +19,15 @@ final class SynchronizerBridge {
     public function __construct($parserClass, ISynchronizer $synchronizer) {
         $this->synchronizer = $synchronizer;
 
-        if (\class_exists($parserClass) && \method_exists($parserClass, 'parse')) {
-            $this->parserClass = $parserClass;
+        if (\class_exists($parserClass)) {
+
+            if (\method_exists($parserClass, 'parse')) {
+                $this->parserClass = $parserClass;
+            } else {
+                throw new \InvalidArgumentException($parserClass . ' has not static method parse');
+            }
+        } else {
+            throw new \InvalidArgumentException($parserClass . ' not found');
         }
     }
 
