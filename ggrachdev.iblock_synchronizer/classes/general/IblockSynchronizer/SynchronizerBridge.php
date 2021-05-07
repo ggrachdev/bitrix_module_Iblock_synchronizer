@@ -8,6 +8,7 @@ use GGrach\IblockSynchronizer\Contracts\ISynchronizer;
 final class SynchronizerBridge {
 
     private $synchronizer;
+    private $parserClass;
 
     /**
      * Правила синхронизации
@@ -15,8 +16,12 @@ final class SynchronizerBridge {
      */
     private $arSyncRules = [];
 
-    public function __construct(ISynchronizer $synchronizer) {
+    public function __construct($parserClass, ISynchronizer $synchronizer) {
         $this->synchronizer = $synchronizer;
+
+        if (\class_exists($parserClass) && \method_exists($parserClass, 'parse')) {
+            $this->parserClass = $parserClass;
+        }
     }
 
     public function getSynchronizer(): ISynchronizer {
@@ -28,7 +33,7 @@ final class SynchronizerBridge {
     }
 
     public function setSyncRules(array $arSyncRules) {
-        $this->arSyncRules = SyncRulesParser::parse($arSyncRules);
+        $this->arSyncRules = $this->parserClass::parse($arSyncRules);
     }
 
     public function sync(): SyncResult {

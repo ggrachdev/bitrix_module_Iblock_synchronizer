@@ -4,10 +4,14 @@ require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.
 
 if (\Bitrix\Main\Loader::includeModule('ggrachdev.iblock_synchronizer')) {
 
+    set_time_limit(0);
+
     // Синхронизируем данные элементов из инфоблока 23 в инфоблок 4, создав синхронизатор
     $synchronizer = new \GGrach\IblockSynchronizer\Synchronizer\Synchronizer(23, 4);
 
-    $synchronizerWrapper = new \GGrach\IblockSynchronizer\SynchronizerBridge($synchronizer);
+    $synchronizerWrapper = new \GGrach\IblockSynchronizer\SynchronizerBridge(
+        \GGrach\IblockSynchronizer\Parser\SyncRulesParser::class, $synchronizer
+    );
 
     $synchronizerWrapper->setSyncRules([
         // Задаем похожие свойства по которым искать соответствия

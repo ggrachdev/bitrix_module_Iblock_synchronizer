@@ -12,6 +12,9 @@
 <?
 
 if (\Bitrix\Main\Loader::includeModule('ggrachdev.iblock_synchronizer')) {
+
+   set_time_limit(0);
+
    // Синхронизируем данные элементов из инфоблока 23 в инфоблок 4, создав синхронизатор
    $synchronizer = new \GGrach\IblockSynchronizer\Synchronizer\Synchronizer(23, 4);
 
