@@ -225,7 +225,7 @@ class Synchronizer implements ISynchronizer {
                     if ($systemSimilarProperties) {
                         foreach ($systemSimilarProperties as $codeSystemProperty) {
                             if (!empty($elementTo[$codeSystemProperty]) && !empty($elementFrom[$codeSystemProperty])) {
-                                if ($elementTo[$codeSystemProperty] != $elementFrom[$codeSystemProperty]) {
+                                if (trim($elementTo[$codeSystemProperty]) != trim($elementFrom[$codeSystemProperty])) {
                                     $isSimilar = false;
                                     break;
                                 }
@@ -245,7 +245,9 @@ class Synchronizer implements ISynchronizer {
                                 !empty($elementFrom[$codeUserPropertyFrom . '_VALUE']) &&
                                 !empty($elementTo[$codeUserPropertyTo . '_VALUE'])
                             ) {
-                                if ($elementFrom[$codeUserPropertyFrom . '_VALUE'] != $elementTo[$codeUserPropertyTo . '_VALUE']) {
+                                if (
+                                    trim($elementFrom[$codeUserPropertyFrom . '_VALUE']) != trim($elementTo[$codeUserPropertyTo . '_VALUE'])
+                                ) {
                                     $isSimilar = false;
                                     break;
                                 }
@@ -402,17 +404,19 @@ class Synchronizer implements ISynchronizer {
 
                         foreach ($elementsFrom as $element) {
 
-                            if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
-                                foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
-                                    if (!empty($element[$code . '_VALUE'])) {
-                                        if (!isset($arFilterTo['=' . $code . '.VALUE'])) {
-                                            $arFilterTo['=' . $code . '.VALUE'] = [];
-                                        }
+                            /*
+                              if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
+                              foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
+                              if (!empty($element[$code . '_VALUE'])) {
+                              if (!isset($arFilterTo['=' . $code . '.VALUE'])) {
+                              $arFilterTo['=' . $code . '.VALUE'] = [];
+                              }
 
-                                        $arFilterTo['=' . $code . '.VALUE'][] = $element[$code . '_VALUE'];
-                                    }
-                                }
-                            }
+                              $arFilterTo['=' . $code . '.VALUE'][] = $element[$code . '_VALUE'];
+                              }
+                              }
+                              }
+                             */
 
                             if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
                                 foreach ($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
@@ -488,7 +492,7 @@ class Synchronizer implements ISynchronizer {
                     $idFrom = $arKeys[0];
 
                     // Синхронизируем цены
-                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom]) && false) {
+                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
 
                         foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
                             $arFieldsPrice = [
