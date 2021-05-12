@@ -6,6 +6,7 @@ use \GGrach\IblockSynchronizer\SyncResult;
 use \GGrach\IblockSynchronizer\Exceptions\SearchIblockException;
 use \GGrach\IblockSynchronizer\Exceptions\BitrixRedactionException;
 use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
+use \GGrach\IblockSynchronizer\Contracts\IParser;
 use \GGrach\IblockSynchronizer\Parser\SyncRulesParser;
 use \Bitrix\Main\Loader;
 use \Bitrix\Iblock\Iblock;
@@ -16,6 +17,7 @@ class Synchronizer implements ISynchronizer {
     private $toIblockId;
     private $arSyncRules;
     private $syncResult;
+    private $parser;
 
     public function __construct(int $fromIblockId, int $toIblockId) {
         if ($fromIblockId <= 0) {
@@ -560,6 +562,14 @@ class Synchronizer implements ISynchronizer {
 
     public function setSyncResult(SyncResult $syncResult): void {
         $this->syncResult = $syncResult;
+    }
+
+    public function setParser(IParser $parser): void {
+        $this->parser = $parser;
+    }
+
+    public function getParser(): IParser {
+        return $this->parser;
     }
 
 }
