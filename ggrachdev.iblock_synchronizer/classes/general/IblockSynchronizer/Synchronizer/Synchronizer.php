@@ -7,7 +7,6 @@ use \GGrach\IblockSynchronizer\Exceptions\SearchIblockException;
 use \GGrach\IblockSynchronizer\Exceptions\BitrixRedactionException;
 use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
 use \GGrach\IblockSynchronizer\Contracts\IParser;
-use \GGrach\IblockSynchronizer\Parser\SyncRulesParser;
 use \Bitrix\Main\Loader;
 use \Bitrix\Iblock\Iblock;
 
@@ -410,20 +409,6 @@ class Synchronizer implements ISynchronizer {
 
                         foreach ($elementsFrom as $element) {
 
-                            /*
-                              if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
-                              foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
-                              if (!empty($element[$code . '_VALUE'])) {
-                              if (!isset($arFilterTo['=' . $code . '.VALUE'])) {
-                              $arFilterTo['=' . $code . '.VALUE'] = [];
-                              }
-
-                              $arFilterTo['=' . $code . '.VALUE'][] = $element[$code . '_VALUE'];
-                              }
-                              }
-                              }
-                             */
-
                             if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
                                 foreach ($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
                                     if (!empty($element[$code])) {
@@ -500,7 +485,6 @@ class Synchronizer implements ISynchronizer {
                     // Синхронизируем цены
                     if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
 
-
                         // Узнаем все типы цен, чтобы если их нет - удалить
                         $arPriceIds = [];
 
@@ -508,7 +492,6 @@ class Synchronizer implements ISynchronizer {
                         while ($arPriceType = $dbPriceType->Fetch()) {
                             $arPriceIds[] = $arPriceType['ID'];
                         }
-                        
                         
                         // Удаляем все типы цен которых нет
                         foreach ($arPriceIds as $idPrice) {
@@ -565,11 +548,11 @@ class Synchronizer implements ISynchronizer {
                         foreach ($values as $codePropertyUpdate => $valueProperty) {
                             if ($codePropertyUpdate !== 'PRICES') {
                                 if (\is_string($valueProperty)) {
-                                    if (SyncRulesParser::isUserProperty($codePropertyUpdate)) {
+                                    if ($this->getParser->isUserProperty($codePropertyUpdate)) {
                                         \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
                                             $codePropertyUpdate => $valueProperty
                                         ]);
-                                    } else if (SyncRulesParser::isSystemProperty($codePropertyUpdate)) {
+                                    } else if ($this->getParser->isSystemProperty($codePropertyUpdate)) {
                                         \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
                                             $codePropertyUpdate => $valueProperty
                                         ]);

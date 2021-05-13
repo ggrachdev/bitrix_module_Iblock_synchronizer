@@ -8,9 +8,10 @@ if (\Bitrix\Main\Loader::includeModule('ggrachdev.iblock_synchronizer')) {
 
     // Синхронизируем данные элементов из инфоблока 23 в инфоблок 4, создав синхронизатор
     $synchronizer = new \GGrach\IblockSynchronizer\Synchronizer\Synchronizer(23, 4);
+    $parser = new \GGrach\IblockSynchronizer\Parser\SyncRulesParser();
 
     $synchronizerWrapper = new \GGrach\IblockSynchronizer\SynchronizerBridge(
-        \GGrach\IblockSynchronizer\Parser\SyncRulesParser::class, $synchronizer
+        $parser, $synchronizer
     );
 
     $synchronizerWrapper->setSyncRules([

@@ -2,7 +2,9 @@
 
 namespace GGrach\IblockSynchronizer\Parser;
 
-class SyncRulesParser {
+use \GGrach\IblockSynchronizer\Contracts\IParser;
+
+class SyncRulesParser implements IParser {
 
     /**
      * Свойства которые считаются за системные свойства битрикса
@@ -18,7 +20,7 @@ class SyncRulesParser {
         'PRICE'
     ];
 
-    public static function parse(array $arInputRules) {
+    public function parse(array $arInputRules): array {
         $arValidRules = [
             'ERRORS' => 0,
             'ERRORS_TEXT' => [],
@@ -40,17 +42,20 @@ class SyncRulesParser {
         ];
 
         // Без похожих свойств нет смысла начинать проверку
-        if (\array_key_exists('SIMILAR_PROPERTIES', $arInputRules) && !empty($arInputRules['SYNC_PROPERTIES'])) {
+        if (
+            \array_key_exists('SIMILAR_PROPERTIES', $arInputRules) &&
+            !empty($arInputRules['SYNC_PROPERTIES'])
+        ) {
 
             foreach ($arInputRules['SIMILAR_PROPERTIES'] as $codeProperty) {
 
                 $codeProperty = trim($codeProperty);
 
-                if (self::isUserProperty($codeProperty)) {
+                if ($this->isUserProperty($codeProperty)) {
                     $arValidRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'][] = \preg_replace('/^PROPERTY_/', '', $codeProperty);
-                } else if (self::isSystemProperty($codeProperty)) {
+                } else if ($this->isSystemProperty($codeProperty)) {
                     $arValidRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'][] = $codeProperty;
-                } else if (self::isOtherProperty($codeProperty)) {
+                } else if ($this->isOtherProperty($codeProperty)) {
                     $arValidRules['SIMILAR_PROPERTIES']['OTHER_PROPERTIES'][] = $codeProperty;
                 } else {
                     $arValidRules['ERRORS']++;
@@ -65,11 +70,11 @@ class SyncRulesParser {
 
                     $codeProperty = trim($codeProperty);
 
-                    if (self::isUserProperty($codeProperty)) {
+                    if ($this->isUserProperty($codeProperty)) {
                         $arValidRules['SYNC_PROPERTIES']['USER_PROPERTIES'][] = \preg_replace('/^PROPERTY_/', '', $codeProperty);
-                    } else if (self::isSystemProperty($codeProperty)) {
+                    } else if ($this->isSystemProperty($codeProperty)) {
                         $arValidRules['SYNC_PROPERTIES']['SYSTEM_PROPERTIES'][] = $codeProperty;
-                    } else if (self::isOtherProperty($codeProperty)) {
+                    } else if ($this->isOtherProperty($codeProperty)) {
                         $arValidRules['SYNC_PROPERTIES']['OTHER_PROPERTIES'][] = $codeProperty;
                     } else {
                         $arValidRules['ERRORS']++;
@@ -83,7 +88,7 @@ class SyncRulesParser {
             if (\array_key_exists('CONFORMITY', $arInputRules) && !empty($arInputRules['CONFORMITY'])) {
 
                 foreach ($arInputRules['CONFORMITY'] as $codeFrom => $codeTo) {
-                    if (self::isUserProperty($codeFrom) && self::isUserProperty($codeTo)) {
+                    if ($this->isUserProperty($codeFrom) && $this->isUserProperty($codeTo)) {
                         $arValidRules['CONFORMITY'] = [
                             \preg_replace('/^PROPERTY_/', '', $codeFrom) => \preg_replace('/^PROPERTY_/', '', $codeTo)
                         ];
@@ -98,9 +103,9 @@ class SyncRulesParser {
         return $arValidRules;
     }
 
-    public static function isUserProperty(string $codeProperty): bool {
+    public function isUserProperty(string $codeProperty): bool {
 
-        $isSystemProperty = self::isSystemProperty($codeProperty);
+        $isSystemProperty = $this->isSystemProperty($codeProperty);
         $isUserProperty = false;
 
         if (!$isSystemProperty && \preg_match('/^PROPERTY_/', $codeProperty)) {
@@ -110,7 +115,7 @@ class SyncRulesParser {
         return $isUserProperty;
     }
 
-    public static function isOtherProperty(string $codeProperty): bool {
+    public function isOtherProperty(string $codeProperty): bool {
 
         $isOtherProperty = false;
 
@@ -121,7 +126,7 @@ class SyncRulesParser {
         return $isOtherProperty;
     }
 
-    public static function isSystemProperty(string $codeProperty): bool {
+    public function isSystemProperty(string $codeProperty): bool {
 
         $isSystemProperty = false;
 
