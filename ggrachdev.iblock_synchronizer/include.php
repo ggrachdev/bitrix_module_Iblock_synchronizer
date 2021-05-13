@@ -17,6 +17,10 @@
     // synchronizer
     "\GGrach\IblockSynchronizer\Synchronizer\Synchronizer" => "classes/general/IblockSynchronizer/Synchronizer/Synchronizer.php",
     
+    // comparators
+    "\GGrach\IblockSynchronizer\Comparator\EqualComparator" => "classes/general/IblockSynchronizer/Comparator/EqualComparator.php",
+    "\GGrach\IblockSynchronizer\Comparator\IdenticalComparator" => "classes/general/IblockSynchronizer/Comparator/IdenticalComparator.php",
+    
     // other
     "\GGrach\IblockSynchronizer\SyncResult" => "classes/general/IblockSynchronizer/SyncResult.php",
     "\GGrach\IblockSynchronizer\Cache\RuntimeCache" => "classes/general/IblockSynchronizer/Cache/RuntimeCache.php"
