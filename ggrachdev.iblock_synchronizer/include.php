@@ -12,6 +12,7 @@
     // contracts
     "\GGrach\IblockSynchronizer\Contracts\ISynchronizer" => "classes/general/IblockSynchronizer/Contracts/ISynchronizer.php",
     "\GGrach\IblockSynchronizer\Contracts\IParser" => "classes/general/IblockSynchronizer/Contracts/IParser.php",
+    "\GGrach\IblockSynchronizer\Contracts\IComparator" => "classes/general/IblockSynchronizer/Contracts/IComparator.php",
     
     // synchronizer
     "\GGrach\IblockSynchronizer\Synchronizer\Synchronizer" => "classes/general/IblockSynchronizer/Synchronizer/Synchronizer.php",
