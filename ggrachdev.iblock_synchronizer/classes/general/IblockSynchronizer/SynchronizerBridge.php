@@ -2,13 +2,14 @@
 
 namespace GGrach\IblockSynchronizer;
 
-use GGrach\IblockSynchronizer\Parser\SyncRulesParser;
-use GGrach\IblockSynchronizer\Contracts\ISynchronizer;
+use \GGrach\IblockSynchronizer\Parser\SyncRulesParser;
+use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
+use \GGrach\IblockSynchronizer\Contracts\IParser;
 
 final class SynchronizerBridge {
 
     private $synchronizer;
-    private $parserClass;
+    private $parser;
 
     /**
      * Правила синхронизации
@@ -16,36 +17,23 @@ final class SynchronizerBridge {
      */
     private $arSyncRules = [];
 
-    public function __construct($parserClass, ISynchronizer $synchronizer) {
+    public function __construct(IParser $parser, ISynchronizer $synchronizer) {
         $this->synchronizer = $synchronizer;
-
-        if (\class_exists($parserClass)) {
-
-            if (\method_exists($parserClass, 'parse')) {
-                $this->parserClass = $parserClass;
-            } else {
-                throw new \InvalidArgumentException($parserClass . ' has not static method parse');
-            }
-        } else {
-            throw new \InvalidArgumentException($parserClass . ' not found');
-        }
+        $this->parser = $parser;
     }
 
     public function getSynchronizer(): ISynchronizer {
         return $this->synchronizer;
     }
 
-    public function getArSyncRules(): array {
-        return $this->arSyncRules;
-    }
-
-    public function setSyncRules(array $arSyncRules) {
-        $this->arSyncRules = $this->parserClass::parse($arSyncRules);
+    public function setSyncRules(array $arSyncRules): void {
+        $this->arSyncRules = $this->parser->parse($arSyncRules);
     }
 
     public function sync(): SyncResult {
         $resultSync = new SyncResult();
-        $this->getSynchronizer()->setSyncRules($this->getArSyncRules());
+        $this->getSynchronizer()->setParser($this->parser);
+        $this->getSynchronizer()->setSyncRules($this->arSyncRules);
         $this->getSynchronizer()->setSyncResult($resultSync);
         return $this->getSynchronizer()->run();
     }

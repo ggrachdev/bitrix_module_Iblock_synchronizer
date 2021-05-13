@@ -3,7 +3,7 @@
 namespace GGrach\IblockSynchronizer\Contracts;
 
 interface IParser {
-    public function parse(): array;
+    public function parse(array $arInputRules): array;
     
     public function isOtherProperty(string $codeProperty): bool;
     
