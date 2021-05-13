@@ -28,7 +28,11 @@ class Synchronizer implements ISynchronizer {
             throw new SearchIblockException('Iblock id ' . $toIblockId . ' can be above zero ');
         }
 
-        if (Loader::includeModule('iblock') && Loader::includeModule('sale')) {
+        if (
+            Loader::includeModule('iblock') &&
+            Loader::includeModule('sale') &&
+            Loader::includeModule('catalog')
+        ) {
 
             $dbFromRes = \CIBlock::GetList([], ['ID' => $fromIblockId]);
 
@@ -496,6 +500,34 @@ class Synchronizer implements ISynchronizer {
                     // Синхронизируем цены
                     if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
 
+
+                        // Узнаем все типы цен, чтобы если их нет - удалить
+                        $arPriceIds = [];
+
+                        $dbPriceType = \CCatalogGroup::GetList();
+                        while ($arPriceType = $dbPriceType->Fetch()) {
+                            $arPriceIds[] = $arPriceType['ID'];
+                        }
+                        
+                        
+                        // Удаляем все типы цен которых нет
+                        foreach ($arPriceIds as $idPrice) {
+
+                            if (!\array_key_exists($idPrice, $arDataFrom[$idFrom]['PRICES'])) {
+                                
+                                $dbPrice = \Bitrix\Catalog\Model\Price::getList([
+                                        "filter" => [
+                                            "PRODUCT_ID" => $idTo,
+                                            "CATALOG_GROUP_ID" => $idPrice
+                                        ]
+                                ]);
+                                
+                                if ($arPriceItem = $dbPrice->fetch()) {
+                                    \Bitrix\Catalog\Model\Price::delete($arPriceItem['ID']);
+                                }
+                            }
+                        }
+
                         foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
                             $arFieldsPrice = [
                                 "PRODUCT_ID" => $idTo,
@@ -526,7 +558,7 @@ class Synchronizer implements ISynchronizer {
                             }
                         }
                     }
-
+                    
                     // @todo Синхронизировать системные и пользовательские свойства
                     foreach ($arDataFrom as $idFrom => $values) {
 
@@ -534,14 +566,13 @@ class Synchronizer implements ISynchronizer {
                             if ($codePropertyUpdate !== 'PRICES') {
                                 if (\is_string($valueProperty)) {
                                     if (SyncRulesParser::isUserProperty($codePropertyUpdate)) {
-//                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
-//                                            $codePropertyUpdate => $valueProperty
-//                                        ]);
+                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+                                            $codePropertyUpdate => $valueProperty
+                                        ]);
                                     } else if (SyncRulesParser::isSystemProperty($codePropertyUpdate)) {
-                                        dre($codePropertyUpdate);
-//                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
-//                                            $codePropertyUpdate => $valueProperty
-//                                        ]);
+                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+                                            $codePropertyUpdate => $valueProperty
+                                        ]);
                                     }
                                 }
                             }
