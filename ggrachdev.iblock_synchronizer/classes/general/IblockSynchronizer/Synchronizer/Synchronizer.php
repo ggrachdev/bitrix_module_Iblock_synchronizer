@@ -9,6 +9,7 @@ use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
 use \GGrach\IblockSynchronizer\Contracts\IParser;
 use \Bitrix\Main\Loader;
 use \Bitrix\Iblock\Iblock;
+use \GGrach\IblockSynchronizer\Comparator\EqualComparator;
 
 class Synchronizer implements ISynchronizer {
 
@@ -204,6 +205,8 @@ class Synchronizer implements ISynchronizer {
         $arSimilar = [];
         $syncResult = $this->getSyncResult();
         $arSyncRules = $this->getSyncRules();
+        
+        $comparator = new EqualComparator();
 
         if (!empty($elementsFrom) && !empty($elementsTo) && !empty($arSyncRules)) {
 
@@ -224,17 +227,18 @@ class Synchronizer implements ISynchronizer {
              */
             foreach ($elementsTo as $elementTo) {
                 foreach ($elementsFrom as $elementFrom) {
+                    
                     $isSimilar = true;
 
                     // Проверяем системные свойства на схожесть
                     if ($systemSimilarProperties) {
+                        
                         foreach ($systemSimilarProperties as $codeSystemProperty) {
-                            if (!empty($elementTo[$codeSystemProperty]) && !empty($elementFrom[$codeSystemProperty])) {
-                                if (trim($elementTo[$codeSystemProperty]) != trim($elementFrom[$codeSystemProperty])) {
-                                    $isSimilar = false;
-                                    break;
-                                }
-                            } else {
+                            
+                            $isSimilarItem = $comparator->isSimilar($elementTo[$codeSystemProperty], $elementFrom[$codeSystemProperty]);
+                            
+                            if($isSimilarItem === false)
+                            {
                                 $isSimilar = false;
                                 break;
                             }
@@ -245,18 +249,11 @@ class Synchronizer implements ISynchronizer {
                     if ($userSimilarProperties && $isSimilar) {
                         foreach ($userSimilarProperties as $codeUserPropertyFrom) {
                             $codeUserPropertyTo = $this->getCodeTo($codeUserPropertyFrom, $arSyncRules);
-
-                            if (
-                                !empty($elementFrom[$codeUserPropertyFrom . '_VALUE']) &&
-                                !empty($elementTo[$codeUserPropertyTo . '_VALUE'])
-                            ) {
-                                if (
-                                    trim($elementFrom[$codeUserPropertyFrom . '_VALUE']) != trim($elementTo[$codeUserPropertyTo . '_VALUE'])
-                                ) {
-                                    $isSimilar = false;
-                                    break;
-                                }
-                            } else {
+                            
+                            $isSimilarItem = $comparator->isSimilar($elementFrom[$codeUserPropertyFrom . '_VALUE'], $elementFrom[$codeSystemProperty]);
+                            
+                            if($isSimilarItem === false)
+                            {
                                 $isSimilar = false;
                                 break;
                             }
