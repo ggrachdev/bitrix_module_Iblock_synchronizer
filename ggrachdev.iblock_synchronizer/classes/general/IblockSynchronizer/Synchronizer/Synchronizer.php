@@ -6,6 +6,7 @@ use \GGrach\IblockSynchronizer\SyncResult;
 use \GGrach\IblockSynchronizer\Exceptions\SearchIblockException;
 use \GGrach\IblockSynchronizer\Exceptions\BitrixRedactionException;
 use \GGrach\IblockSynchronizer\Contracts\ISynchronizer;
+use \GGrach\IblockSynchronizer\Contracts\IParser;
 use \GGrach\IblockSynchronizer\Parser\SyncRulesParser;
 use \Bitrix\Main\Loader;
 use \Bitrix\Iblock\Iblock;
@@ -16,6 +17,7 @@ class Synchronizer implements ISynchronizer {
     private $toIblockId;
     private $arSyncRules;
     private $syncResult;
+    private $parser;
 
     public function __construct(int $fromIblockId, int $toIblockId) {
         if ($fromIblockId <= 0) {
@@ -26,7 +28,11 @@ class Synchronizer implements ISynchronizer {
             throw new SearchIblockException('Iblock id ' . $toIblockId . ' can be above zero ');
         }
 
-        if (Loader::includeModule('iblock') && Loader::includeModule('sale')) {
+        if (
+            Loader::includeModule('iblock') &&
+            Loader::includeModule('sale') &&
+            Loader::includeModule('catalog')
+        ) {
 
             $dbFromRes = \CIBlock::GetList([], ['ID' => $fromIblockId]);
 
@@ -225,7 +231,7 @@ class Synchronizer implements ISynchronizer {
                     if ($systemSimilarProperties) {
                         foreach ($systemSimilarProperties as $codeSystemProperty) {
                             if (!empty($elementTo[$codeSystemProperty]) && !empty($elementFrom[$codeSystemProperty])) {
-                                if ($elementTo[$codeSystemProperty] != $elementFrom[$codeSystemProperty]) {
+                                if (trim($elementTo[$codeSystemProperty]) != trim($elementFrom[$codeSystemProperty])) {
                                     $isSimilar = false;
                                     break;
                                 }
@@ -245,7 +251,9 @@ class Synchronizer implements ISynchronizer {
                                 !empty($elementFrom[$codeUserPropertyFrom . '_VALUE']) &&
                                 !empty($elementTo[$codeUserPropertyTo . '_VALUE'])
                             ) {
-                                if ($elementFrom[$codeUserPropertyFrom . '_VALUE'] != $elementTo[$codeUserPropertyTo . '_VALUE']) {
+                                if (
+                                    trim($elementFrom[$codeUserPropertyFrom . '_VALUE']) != trim($elementTo[$codeUserPropertyTo . '_VALUE'])
+                                ) {
                                     $isSimilar = false;
                                     break;
                                 }
@@ -402,17 +410,19 @@ class Synchronizer implements ISynchronizer {
 
                         foreach ($elementsFrom as $element) {
 
-                            if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
-                                foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
-                                    if (!empty($element[$code . '_VALUE'])) {
-                                        if (!isset($arFilterTo['=' . $code . '.VALUE'])) {
-                                            $arFilterTo['=' . $code . '.VALUE'] = [];
-                                        }
+                            /*
+                              if (!empty($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'])) {
+                              foreach ($arSyncRules['SIMILAR_PROPERTIES']['USER_PROPERTIES'] as $code) {
+                              if (!empty($element[$code . '_VALUE'])) {
+                              if (!isset($arFilterTo['=' . $code . '.VALUE'])) {
+                              $arFilterTo['=' . $code . '.VALUE'] = [];
+                              }
 
-                                        $arFilterTo['=' . $code . '.VALUE'][] = $element[$code . '_VALUE'];
-                                    }
-                                }
-                            }
+                              $arFilterTo['=' . $code . '.VALUE'][] = $element[$code . '_VALUE'];
+                              }
+                              }
+                              }
+                             */
 
                             if (!empty($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'])) {
                                 foreach ($arSyncRules['SIMILAR_PROPERTIES']['SYSTEM_PROPERTIES'] as $code) {
@@ -488,7 +498,35 @@ class Synchronizer implements ISynchronizer {
                     $idFrom = $arKeys[0];
 
                     // Синхронизируем цены
-                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom]) && false) {
+                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
+
+
+                        // Узнаем все типы цен, чтобы если их нет - удалить
+                        $arPriceIds = [];
+
+                        $dbPriceType = \CCatalogGroup::GetList();
+                        while ($arPriceType = $dbPriceType->Fetch()) {
+                            $arPriceIds[] = $arPriceType['ID'];
+                        }
+                        
+                        
+                        // Удаляем все типы цен которых нет
+                        foreach ($arPriceIds as $idPrice) {
+
+                            if (!\array_key_exists($idPrice, $arDataFrom[$idFrom]['PRICES'])) {
+                                
+                                $dbPrice = \Bitrix\Catalog\Model\Price::getList([
+                                        "filter" => [
+                                            "PRODUCT_ID" => $idTo,
+                                            "CATALOG_GROUP_ID" => $idPrice
+                                        ]
+                                ]);
+                                
+                                if ($arPriceItem = $dbPrice->fetch()) {
+                                    \Bitrix\Catalog\Model\Price::delete($arPriceItem['ID']);
+                                }
+                            }
+                        }
 
                         foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
                             $arFieldsPrice = [
@@ -520,7 +558,7 @@ class Synchronizer implements ISynchronizer {
                             }
                         }
                     }
-
+                    
                     // @todo Синхронизировать системные и пользовательские свойства
                     foreach ($arDataFrom as $idFrom => $values) {
 
@@ -528,14 +566,13 @@ class Synchronizer implements ISynchronizer {
                             if ($codePropertyUpdate !== 'PRICES') {
                                 if (\is_string($valueProperty)) {
                                     if (SyncRulesParser::isUserProperty($codePropertyUpdate)) {
-//                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
-//                                            $codePropertyUpdate => $valueProperty
-//                                        ]);
+                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+                                            $codePropertyUpdate => $valueProperty
+                                        ]);
                                     } else if (SyncRulesParser::isSystemProperty($codePropertyUpdate)) {
-                                        dre($codePropertyUpdate);
-//                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
-//                                            $codePropertyUpdate => $valueProperty
-//                                        ]);
+                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+                                            $codePropertyUpdate => $valueProperty
+                                        ]);
                                     }
                                 }
                             }
@@ -556,6 +593,14 @@ class Synchronizer implements ISynchronizer {
 
     public function setSyncResult(SyncResult $syncResult): void {
         $this->syncResult = $syncResult;
+    }
+
+    public function setParser(IParser $parser): void {
+        $this->parser = $parser;
+    }
+
+    public function getParser(): IParser {
+        return $this->parser;
     }
 
 }
