@@ -8,6 +8,8 @@
 
 Протестировано на php 7.2.34 с синхронизацией 1700 товаров с около 10 типами цен из одного каталога в другой
 
+Вы можете создать свой парсер или свой синхронизатор, реализовав IParser и ISynchronizer соответственно
+
 ```php
 <?
 
@@ -17,9 +19,10 @@ if (\Bitrix\Main\Loader::includeModule('ggrachdev.iblock_synchronizer')) {
 
    // Синхронизируем данные элементов из инфоблока 23 в инфоблок 4, создав синхронизатор
    $synchronizer = new \GGrach\IblockSynchronizer\Synchronizer\Synchronizer(23, 4);
+   $parser = new \GGrach\IblockSynchronizer\Parser\SyncRulesParser();
 
    $synchronizerWrapper = new \GGrach\IblockSynchronizer\SynchronizerBridge(
-        GGrach\IblockSynchronizer\Parser\SyncRulesParser::class,
+        $parser,
         $synchronizer
     );
 
