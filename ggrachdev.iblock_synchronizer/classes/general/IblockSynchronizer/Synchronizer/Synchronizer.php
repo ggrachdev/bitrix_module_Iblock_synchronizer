@@ -232,7 +232,6 @@ class Synchronizer implements ISynchronizer {
 
                     // Проверяем системные свойства на схожесть
                     if ($systemSimilarProperties) {
-                        
                         foreach ($systemSimilarProperties as $codeSystemProperty) {
                             
                             $isSimilarItem = $comparator->isSimilar($elementTo[$codeSystemProperty], $elementFrom[$codeSystemProperty]);
@@ -250,7 +249,7 @@ class Synchronizer implements ISynchronizer {
                         foreach ($userSimilarProperties as $codeUserPropertyFrom) {
                             $codeUserPropertyTo = $this->getCodeTo($codeUserPropertyFrom, $arSyncRules);
                             
-                            $isSimilarItem = $comparator->isSimilar($elementFrom[$codeUserPropertyFrom . '_VALUE'], $elementFrom[$codeSystemProperty]);
+                            $isSimilarItem = $comparator->isSimilar($elementTo[$codeUserPropertyTo . '_VALUE'], $elementFrom[$codeUserPropertyFrom . '_VALUE']);
                             
                             if($isSimilarItem === false)
                             {
@@ -259,7 +258,7 @@ class Synchronizer implements ISynchronizer {
                             }
                         }
                     }
-
+                    
                     // Если элементы являются похожими, то добавляем элемент в массив похожих к element to
                     if ($isSimilar) {
                         if (!isset($arSimilar[$elementTo['ID']])) {
@@ -449,7 +448,7 @@ class Synchronizer implements ISynchronizer {
 
                         // 2) 3)
                         $arSimilar = $this->getSimilarArrayElements($elementsFrom, $elementsTo);
-
+                        
                         $syncResult->setSynchronizedData($arSimilar);
 
                         // 4)
