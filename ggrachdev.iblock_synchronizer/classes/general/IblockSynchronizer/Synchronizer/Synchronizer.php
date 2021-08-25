@@ -465,6 +465,103 @@ class Synchronizer implements ISynchronizer {
      * Синхронизация свойств
      */
     public function sync() {
+                    
+        function syncPrices(array $arDataFrom, int $idFrom, int $idTo) {
+            
+            $isSuccessSync = true;
+            
+            // Синхронизируем цены
+            if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
+
+                // Узнаем все типы цен, чтобы если их нет - удалить
+                $arPriceIds = [];
+
+                $dbPriceType = \CCatalogGroup::GetList();
+                while ($arPriceType = $dbPriceType->Fetch()) {
+                    $arPriceIds[] = $arPriceType['ID'];
+                }
+
+                // Удаляем все типы цен которых нет
+                foreach ($arPriceIds as $idPrice) {
+
+                    if (!\array_key_exists($idPrice, $arDataFrom[$idFrom]['PRICES'])) {
+
+                        $dbPrice = \Bitrix\Catalog\Model\Price::getList([
+                                "filter" => [
+                                    "PRODUCT_ID" => $idTo,
+                                    "CATALOG_GROUP_ID" => $idPrice
+                                ]
+                        ]);
+
+                        if ($arPriceItem = $dbPrice->fetch()) {
+                            \Bitrix\Catalog\Model\Price::delete($arPriceItem['ID']);
+                        }
+                    }
+                }
+
+                foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
+                    $arFieldsPrice = [
+                        "PRODUCT_ID" => $idTo,
+                        "CATALOG_GROUP_ID" => $priceCode,
+                        "PRICE" => $priceData['PRICE'],
+                        "CURRENCY" => $priceData['CURRENCY'] ? $priceData['CURRENCY'] : 'RUB',
+                    ];
+
+                    $dbPrice = \Bitrix\Catalog\Model\Price::getList([
+                            "filter" => [
+                                "PRODUCT_ID" => $idTo,
+                                "CATALOG_GROUP_ID" => $priceCode
+                            ]
+                    ]);
+
+                    if ($arPriceItem = $dbPrice->fetch()) {
+                        $result = \Bitrix\Catalog\Model\Price::update($arPriceItem["ID"], $arFieldsPrice);
+
+                        if (!$result->isSuccess()) {
+                            $isSuccessSync = false;
+                        }
+                    } else {
+                        $result = \Bitrix\Catalog\Model\Price::add($arFieldsPrice);
+
+                        if (!$result->isSuccess()) {
+                            $isSuccessSync = false;
+                        }
+                    }
+                }
+            }
+
+            return $isSuccessSync;
+        }
+        
+        function syncProperties(array $arDataFrom, int $idFrom, int $idTo) {
+            
+            // todo: проверить успешна ли синхронизация свойств
+            $isSuccessSync = true;
+            
+            // Синхронизируем одиночные свойства
+            // @todo Синхронизировать системные и пользовательские свойства
+            foreach ($arDataFrom as $idFrom => $values) {
+
+                foreach ($values as $codePropertyUpdate => $valueProperty) {
+                    if ($codePropertyUpdate !== 'PRICES') {
+                        if (\is_string($valueProperty)) {
+                            if ($this->getParser->isUserProperty($codePropertyUpdate)) {
+                                \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+                                    $codePropertyUpdate => $valueProperty
+                                ]);
+                            } else if ($this->getParser->isSystemProperty($codePropertyUpdate)) {
+                                \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
+                                    $codePropertyUpdate => $valueProperty
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return $isSuccessSync;
+        }
+
         $syncResult = $this->getSyncResult();
 
         $arSimilar = $this->getSyncResult()->getSynchronizedData();
@@ -478,85 +575,11 @@ class Synchronizer implements ISynchronizer {
 
                     $idFrom = $arKeys[0];
 
-                    // Синхронизируем цены
-                    if (\array_key_exists('PRICES', $arDataFrom[$idFrom])) {
-
-                        // Узнаем все типы цен, чтобы если их нет - удалить
-                        $arPriceIds = [];
-
-                        $dbPriceType = \CCatalogGroup::GetList();
-                        while ($arPriceType = $dbPriceType->Fetch()) {
-                            $arPriceIds[] = $arPriceType['ID'];
-                        }
-                        
-                        // Удаляем все типы цен которых нет
-                        foreach ($arPriceIds as $idPrice) {
-
-                            if (!\array_key_exists($idPrice, $arDataFrom[$idFrom]['PRICES'])) {
-                                
-                                $dbPrice = \Bitrix\Catalog\Model\Price::getList([
-                                        "filter" => [
-                                            "PRODUCT_ID" => $idTo,
-                                            "CATALOG_GROUP_ID" => $idPrice
-                                        ]
-                                ]);
-                                
-                                if ($arPriceItem = $dbPrice->fetch()) {
-                                    \Bitrix\Catalog\Model\Price::delete($arPriceItem['ID']);
-                                }
-                            }
-                        }
-
-                        foreach ($arDataFrom[$idFrom]['PRICES'] as $priceCode => $priceData) {
-                            $arFieldsPrice = [
-                                "PRODUCT_ID" => $idTo,
-                                "CATALOG_GROUP_ID" => $priceCode,
-                                "PRICE" => $priceData['PRICE'],
-                                "CURRENCY" => $priceData['CURRENCY'] ? $priceData['CURRENCY'] : 'RUB',
-                            ];
-
-                            $dbPrice = \Bitrix\Catalog\Model\Price::getList([
-                                    "filter" => [
-                                        "PRODUCT_ID" => $idTo,
-                                        "CATALOG_GROUP_ID" => $priceCode
-                                    ]
-                            ]);
-
-                            if ($arPriceItem = $dbPrice->fetch()) {
-                                $result = \Bitrix\Catalog\Model\Price::update($arPriceItem["ID"], $arFieldsPrice);
-
-                                if (!$result->isSuccess()) {
-                                    $isSuccessSync = false;
-                                }
-                            } else {
-                                $result = \Bitrix\Catalog\Model\Price::add($arFieldsPrice);
-
-                                if (!$result->isSuccess()) {
-                                    $isSuccessSync = false;
-                                }
-                            }
-                        }
-                    }
+                    $isSuccessSyncPrices = syncPrices($arDataFrom, $idFrom, $idTo);
                     
-                    // @todo Синхронизировать системные и пользовательские свойства
-                    foreach ($arDataFrom as $idFrom => $values) {
-
-                        foreach ($values as $codePropertyUpdate => $valueProperty) {
-                            if ($codePropertyUpdate !== 'PRICES') {
-                                if (\is_string($valueProperty)) {
-                                    if ($this->getParser->isUserProperty($codePropertyUpdate)) {
-                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
-                                            $codePropertyUpdate => $valueProperty
-                                        ]);
-                                    } else if ($this->getParser->isSystemProperty($codePropertyUpdate)) {
-                                        \CIBlockElement::SetPropertyValuesEx($idTo, $this->getToIblockId(), [
-                                            $codePropertyUpdate => $valueProperty
-                                        ]);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    $isSuccessSyncProperties = syncProperties($arDataFrom, $idFrom, $idTo);
+                    
+                    $isSuccessSync = $isSuccessSyncPrices && $isSuccessSyncProperties;
                 }
 
                 if ($isSuccessSync) {
